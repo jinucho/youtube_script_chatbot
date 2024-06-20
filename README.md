@@ -1,6 +1,6 @@
 # youtube_summary_chatbot
 
-## Lilys.ai 카피캣
+## 아이디어 기록
 
 ```
 from pytube import YouTube
