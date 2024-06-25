@@ -1,6 +1,6 @@
 # youtube_summary_chatbot
 
-## 아이디어 기록
+## 참고
 
 ```
 from pytube import YouTube
