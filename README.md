@@ -1,55 +1,9 @@
 # youtube_summary_chatbot
 
-## 참고
+## 계획
 
-```
-from pytube import YouTube
-from moviepy.editor import *
-import speech_recognition as sr
-import cv2
-import os
-
-#유튜브 영상 다운로드 함수
-def download_video(url):
-    yt = YouTube(url)
-    video = yt.streams.filter(file_extension='mp4').first()
-    video.download(filename='downloaded_video.mp4')
-    return 'downloaded_video.mp4'
-
-#영상에서 음성 추출
-def extract_audio(video_path):
-    video = VideoFileClip(video_path)
-    audio = video.audio
-    audio.write_audiofile('extracted_audio.wav')
-    return 'extracted_audio.wav'
-
-#음성을 텍스트로 변환
-def transcribe_audio(audio_path):
-    recognizer = sr.Recognizer()
-    with sr.AudioFile(audio_path) as source:
-        audio_data = recognizer.record(source)
-        text = recognizer.recognize_google(audio_data)
-        return text
-
-# 영상을 프레임 단위로 분할 및 프레임간 이미지의 차이 계산
-import cv2
-
-cap = cv2.VideoCapture('vancouver2.mp4')
-fps = cap.get(cv2.CAP_PROP_FPS)
-
-timestamps = [cap.get(cv2.CAP_PROP_POS_MSEC)]
-calc_timestamps = [0.0]
-
-while(cap.isOpened()):
-frame_exists, curr_frame = cap.read()
-if frame_exists:
-  timestamps.append(cap.get(cv2.CAP_PROP_POS_MSEC))
-  calc_timestamps.append(calc_timestamps[-1] + 1000/fps)
-else:
-  break
-
-cap.release()
-
-for i, (ts, cts) in enumerate(zip(timestamps, calc_timestamps)):
-  print('Frame %d difference:'%i, abs(ts - cts))
-```
+1. 유튜브 영상 다운로드 함수
+2. 영상에서 음성 추출
+3. 음성을 텍스트로 변환 -> 텍스트를 RAG용 문서로 사용
+4. 영상을 프레임 단위로 분할 및 프레임간 이미지의 차이 계산 -> 프레임간 이미지의 차이값을 통해 영상의 소주제를 구분/ 소주제마다의 key frame 이미지를 몇가지 저장
+5. LLM과 3번의 텍스트와 연결(langchain) / 챗봇으로 사용하기 위한 finetunning방법 조사 후 적용
