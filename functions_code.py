@@ -89,3 +89,90 @@ final_summary = summarize_chain.run([final_doc])
 print("초기 요약:", initial_summary)
 print("최종 요약:", final_summary)
 
+
+
+
+
+from langchain import OpenAI, LLMChain
+from langchain.chains import SimpleSequentialChain
+from langchain.agents import Tool, initialize_agent, AgentType
+from langchain.prompts import PromptTemplate
+from langchain.memory import ConversationBufferMemory
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+# LLM 초기화 (예: OpenAI GPT-4)
+llm = OpenAI(temperature=0.7, openai_api_key="your_openai_api_key")
+
+# 긴 텍스트 예제 (동영상 음성 데이터로 변환된 텍스트)
+document_text = """
+긴 텍스트가 여기에 들어갑니다. 전체 주제는 "M&A 산업 동향"이며, 소주제는 다음과 같이 나눌 수 있습니다.
+1. M&A의 정의와 개요
+2. 최근 M&A 시장 동향
+3. M&A 과정에서 발생하는 주요 이슈
+4. 성공적인 M&A 사례
+"""
+
+# 1. 텍스트를 중첩된 형태로 분할하기
+splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+split_docs = splitter.create_documents([document_text])
+
+# 2. 각 분할된 텍스트에 대해 전체 주제 및 소주제 요약 생성
+summary_prompt_template = """
+텍스트를 읽고 전체 주제와 소주제를 요약하세요.
+텍스트: {text}
+"""
+
+summary_prompt = PromptTemplate(input_variables=["text"], template=summary_prompt_template)
+summary_chain = LLMChain(llm=llm, prompt=summary_prompt)
+
+# 각 텍스트 조각 요약 생성
+summaries = [summary_chain.run(text=doc.page_content) for doc in split_docs]
+
+# 전체 주제와 소주제 요약본 저장
+overall_summary = "M&A 산업 동향에 대한 개요 및 각 소주제에 대한 요약입니다."
+subtopics = {
+    "M&A의 정의와 개요": summaries[0],
+    "최근 M&A 시장 동향": summaries[1],
+    "M&A 과정에서 발생하는 주요 이슈": summaries[2],
+    "성공적인 M&A 사례": summaries[3],
+}
+
+# 3. 질의에 따른 에이전트 설정
+# 전체 주제 요약 에이전트
+def overall_summary_agent(query):
+    return f"전체 주제 요약: {overall_summary}"
+
+# 소주제 요약 에이전트
+def subtopic_agent(query):
+    for subtopic, content in subtopics.items():
+        if subtopic in query:
+            return f"질문한 소주제: {subtopic}\n소주제 요약: {content}"
+    return "해당 소주제에 대한 정보를 찾을 수 없습니다."
+
+# 4. LangChain Tool 설정
+tools = [
+    Tool(name="Overall Summary Agent", func=overall_summary_agent, description="전체 주제에 대해 요약된 답변을 제공합니다."),
+    Tool(name="Subtopic Agent", func=subtopic_agent, description="질문한 소주제에 대한 답변을 제공합니다.")
+]
+
+# 5. 에이전트 초기화
+agent = initialize_agent(
+    tools=tools,
+    llm=llm,
+    agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
+    verbose=True,
+    memory=ConversationBufferMemory()
+)
+
+# 6. 사용자 질의 처리
+query_1 = "M&A 산업의 전체적인 동향에 대해 알려주세요."
+query_2 = "M&A 과정에서 발생하는 주요 이슈에 대해 설명해 주세요."
+
+response_1 = agent.run(query_1)  # 전체 주제 요약
+response_2 = agent.run(query_2)  # 특정 소주제에 대한 답변
+
+# 결과 출력
+print("전체 주제 질문에 대한 답변:", response_1)
+print("소주제 질문에 대한 답변:", response_2)
+
+
