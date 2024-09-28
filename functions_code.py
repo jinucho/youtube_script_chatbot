@@ -36,14 +36,56 @@ timestamps = [cap.get(cv2.CAP_PROP_POS_MSEC)]
 calc_timestamps = [0.0]
 
 while(cap.isOpened()):
-frame_exists, curr_frame = cap.read()
-if frame_exists:
-  timestamps.append(cap.get(cv2.CAP_PROP_POS_MSEC))
-  calc_timestamps.append(calc_timestamps[-1] + 1000/fps)
-else:
-  break
+    frame_exists, curr_frame = cap.read()
+    if frame_exists:
+        timestamps.append(cap.get(cv2.CAP_PROP_POS_MSEC))
+        calc_timestamps.append(calc_timestamps[-1] + 1000/fps)
+    else:
+        break
 
 cap.release()
 
 for i, (ts, cts) in enumerate(zip(timestamps, calc_timestamps)):
   print('Frame %d difference:'%i, abs(ts - cts))
+
+
+from langchain import OpenAI, TextSplitter, Document, DocumentLoader
+from langchain.chains.summarize import load_summarize_chain
+from langchain.document_loaders import TextLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.chains import MapReduceChain
+from langchain.memory import ConversationBufferMemory
+
+# OpenAI API 설정
+llm = OpenAI(temperature=0.7, openai_api_key="your_openai_api_key")
+
+# 1. 긴 텍스트를 읽어와서 Document로 로드
+document_text = """
+여기에 매우 긴 텍스트를 입력합니다. 예를 들어 동영상의 음성 데이터를 텍스트로 변환한 결과가 여기에 들어갑니다. 
+이 텍스트는 매우 길고 여러 소주제를 포함하고 있으며, 우리는 이를 효과적으로 분할하고 요약해야 합니다.
+"""
+
+# 2. 텍스트를 Document로 변환
+documents = [Document(page_content=document_text)]
+
+# 3. TextSplitter를 이용하여 텍스트를 중첩된 형태로 분할
+# 각 분할 단위는 1000자로 설정하되, 다음 텍스트가 이전 텍스트의 마지막 200자를 포함하도록 설정
+splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=200)
+split_docs = splitter.split_documents(documents)
+
+# 4. 요약을 위한 체인 로드
+summarize_chain = load_summarize_chain(llm, chain_type="map_reduce")
+
+# 5. 분할된 문서 각각에 대해 요약 수행
+initial_summary = summarize_chain.run(split_docs)
+
+# 6. 요약된 내용을 다시 하나의 문서로 합침
+final_doc = Document(page_content=initial_summary)
+
+# 7. 최종 요약 수행
+final_summary = summarize_chain.run([final_doc])
+
+# 결과 출력
+print("초기 요약:", initial_summary)
+print("최종 요약:", final_summary)
+
