@@ -1,0 +1,9 @@
+pytubefix==6.16.3
+moviepy==1.0.3
+opencv-python==4.10.0.84
+SpeechRecognition==3.10.4
+youtube-transcript-api==0.6.2
+ffmpeg==1.4
+# mac : brew install ffmpeg 
+# ubuntu : sudo apt install ffmpeg
+# window는 공식 홈페이지에서 다운로드
