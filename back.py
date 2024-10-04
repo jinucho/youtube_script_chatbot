@@ -12,6 +12,7 @@ from pydantic import BaseModel
 from pytubefix import YouTube
 from pytubefix.cli import on_progress
 from youtube_transcript_api import VideoUnavailable
+import time
 
 # 디바이스 설정
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -72,6 +73,7 @@ async def get_script(url, language="ko"):
 
         # 2. 자막이 없는 경우, 음성 추출 및 Whisper 사용
         # 유튜브 영상에서 오디오 스트림 다운로드
+        start_time = time.time()
         yt = YouTube(url, on_progress_callback=on_progress)
         audio_stream = yt.streams.filter(only_audio=True).first()
 
@@ -81,8 +83,9 @@ async def get_script(url, language="ko"):
 
             # 오디오 데이터를 임시 파일로 저장
             audio_stream.download(output_path=temp_dir, filename=temp_audio_file)
-
+            print(f"오디오 스트림 다운로드 완료: {time.time() - start_time}초 소요")
             # 오디오 파일을 Whisper 모델에 입력하여 텍스트 변환 수행
+            start_time = time.time()
             segments, info = model.transcribe(
                 temp_audio_file,
                 beam_size=5,
@@ -121,6 +124,7 @@ async def get_script(url, language="ko"):
             if os.path.exists(temp_audio_file):
                 os.remove(temp_audio_file)
         # 변환된 텍스트 반환
+        print(f"텍스트 변환 완료: {time.time() - start_time}초 소요")
         return transcript_with_timestamps
 
     except VideoUnavailable:

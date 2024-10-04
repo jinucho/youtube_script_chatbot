@@ -8,7 +8,7 @@ st.title("유튜브 영상 정보 추출")
 url = st.text_input("유튜브 URL을 입력하세요:")
 
 # FastAPI 서버의 엔드포인트 URL 설정 (자신의 서버 주소로 변경)
-api_endpoint = "http://127.0.0.1:8001/extract_info"
+api_endpoint = "http://127.0.0.1:8010/extract_info"
 
 # URL이 입력되었고, 버튼이 클릭되었을 때 동작
 if st.button("정보 추출"):
