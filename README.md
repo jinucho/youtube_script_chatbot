@@ -1,4 +1,4 @@
-# youtube_summary_chatbot
+# youtube_script_chatbot
 
 ## 계획
 
