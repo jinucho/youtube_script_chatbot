@@ -103,7 +103,7 @@ async def get_script(url, language="ko"):
                 end = segment.end  # 종료 시간 (초 단위)
                 text = segment.text.strip()  # 텍스트
 
-                # 이미 확인된 텍스트가 없는 경우 새로 추가하고, end 시간도 기록
+                # 이미 확인된 텍스트가 없는 경우 새로 추가하고, end 시간도 기록 --> 일부 텍스트가 중복 되는 경우가 있어 제외 처리
                 if text not in checked_text:
                     checked_text[text] = end  # text의 마지막 end 시간을 기록
                     transcript_with_timestamps.append(
@@ -148,4 +148,4 @@ async def extract_info(url: str):
 
 # FastAPI 서버 실행
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8010)
