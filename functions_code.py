@@ -5,21 +5,23 @@ import cv2
 import os
 
 
-#유튜브 영상 다운로드 함수
+# 유튜브 영상 다운로드 함수
 def download_video(url):
     yt = YouTube(url)
-    video = yt.streams.filter(file_extension='mp4').first()
-    video.download(filename='downloaded_video.mp4')
-    return 'downloaded_video.mp4'
+    video = yt.streams.filter(file_extension="mp4").first()
+    video.download(filename="downloaded_video.mp4")
+    return "downloaded_video.mp4"
 
-#영상에서 음성 추출
+
+# 영상에서 음성 추출
 def extract_audio(video_path):
     video = VideoFileClip(video_path)
     audio = video.audio
-    audio.write_audiofile('extracted_audio.wav')
-    return 'extracted_audio.wav'
+    audio.write_audiofile("extracted_audio.wav")
+    return "extracted_audio.wav"
 
-#음성을 텍스트로 변환
+
+# 음성을 텍스트로 변환
 def transcribe_audio(audio_path):
     recognizer = sr.Recognizer()
     with sr.AudioFile(audio_path) as source:
@@ -27,27 +29,28 @@ def transcribe_audio(audio_path):
         text = recognizer.recognize_google(audio_data)
         return text
 
+
 # 영상을 프레임 단위로 분할 및 프레임간 이미지의 차이 계산
 import cv2
 
-cap = cv2.VideoCapture('vancouver2.mp4')
+cap = cv2.VideoCapture("vancouver2.mp4")
 fps = cap.get(cv2.CAP_PROP_FPS)
 
 timestamps = [cap.get(cv2.CAP_PROP_POS_MSEC)]
 calc_timestamps = [0.0]
 
-while(cap.isOpened()):
+while cap.isOpened():
     frame_exists, curr_frame = cap.read()
     if frame_exists:
         timestamps.append(cap.get(cv2.CAP_PROP_POS_MSEC))
-        calc_timestamps.append(calc_timestamps[-1] + 1000/fps)
+        calc_timestamps.append(calc_timestamps[-1] + 1000 / fps)
     else:
         break
 
 cap.release()
 
 for i, (ts, cts) in enumerate(zip(timestamps, calc_timestamps)):
-  print('Frame %d difference:'%i, abs(ts - cts))
+    print("Frame %d difference:" % i, abs(ts - cts))
 
 
 from langchain import OpenAI, TextSplitter, Document, DocumentLoader
@@ -91,7 +94,6 @@ print("초기 요약:", initial_summary)
 print("최종 요약:", final_summary)
 
 
-
 from langchain import OpenAI, LLMChain
 from langchain.chains import SimpleSequentialChain
 from langchain.agents import Tool, initialize_agent, AgentType
@@ -121,7 +123,9 @@ summary_prompt_template = """
 텍스트: {text}
 """
 
-summary_prompt = PromptTemplate(input_variables=["text"], template=summary_prompt_template)
+summary_prompt = PromptTemplate(
+    input_variables=["text"], template=summary_prompt_template
+)
 summary_chain = LLMChain(llm=llm, prompt=summary_prompt)
 
 # 각 텍스트 조각 요약 생성
@@ -136,10 +140,12 @@ subtopics = {
     "성공적인 M&A 사례": summaries[3],
 }
 
+
 # 3. 질의에 따른 에이전트 설정
 # 전체 주제 요약 에이전트
 def overall_summary_agent(query):
     return f"전체 주제 요약: {overall_summary}"
+
 
 # 소주제 요약 에이전트
 def subtopic_agent(query):
@@ -148,10 +154,19 @@ def subtopic_agent(query):
             return f"질문한 소주제: {subtopic}\n소주제 요약: {content}"
     return "해당 소주제에 대한 정보를 찾을 수 없습니다."
 
+
 # 4. LangChain Tool 설정
 tools = [
-    Tool(name="Overall Summary Agent", func=overall_summary_agent, description="전체 주제에 대해 요약된 답변을 제공합니다."),
-    Tool(name="Subtopic Agent", func=subtopic_agent, description="질문한 소주제에 대한 답변을 제공합니다.")
+    Tool(
+        name="Overall Summary Agent",
+        func=overall_summary_agent,
+        description="전체 주제에 대해 요약된 답변을 제공합니다.",
+    ),
+    Tool(
+        name="Subtopic Agent",
+        func=subtopic_agent,
+        description="질문한 소주제에 대한 답변을 제공합니다.",
+    ),
 ]
 
 # 5. 에이전트 초기화
@@ -160,7 +175,7 @@ agent = initialize_agent(
     llm=llm,
     agent=AgentType.ZERO_SHOT_REACT_DESCRIPTION,
     verbose=True,
-    memory=ConversationBufferMemory()
+    memory=ConversationBufferMemory(),
 )
 
 # 6. 사용자 질의 처리
@@ -173,5 +188,3 @@ response_2 = agent.run(query_2)  # 특정 소주제에 대한 답변
 # 결과 출력
 print("전체 주제 질문에 대한 답변:", response_1)
 print("소주제 질문에 대한 답변:", response_2)
-
-
