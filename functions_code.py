@@ -4,6 +4,7 @@ import speech_recognition as sr
 import cv2
 import os
 
+
 #유튜브 영상 다운로드 함수
 def download_video(url):
     yt = YouTube(url)
@@ -88,8 +89,6 @@ final_summary = summarize_chain.run([final_doc])
 # 결과 출력
 print("초기 요약:", initial_summary)
 print("최종 요약:", final_summary)
-
-
 
 
 
