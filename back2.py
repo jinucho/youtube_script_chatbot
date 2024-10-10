@@ -12,8 +12,9 @@ import torch
 import uvicorn
 from deep_translator import GoogleTranslator
 from dotenv import load_dotenv
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from faster_whisper import WhisperModel
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
@@ -239,6 +240,19 @@ async def get_script_summary(language):
 async def chat(prompt: str):
     result = llm.invoke(prompt)
     return {"result": result.content}
+
+
+@app.post("/stream_chat")
+async def stream_chat(request: Request):
+    data = await request.json()
+    prompt = data.get("prompt")
+
+    async def generate():
+        async for chunk in llm.astream(prompt):
+            yield f"data: {chunk.content}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
 
 
 # FastAPI 서버 실행
