@@ -2,7 +2,6 @@ import streamlit as st
 import requests
 from datetime import datetime, timedelta, timezone
 
-
 # 한국 표준시(KST) 시간대 설정
 kst = timezone(timedelta(hours=9))
 
@@ -10,13 +9,9 @@ kst = timezone(timedelta(hours=9))
 st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
 st.title("유튜브 요약 및 AI 채팅")
 
-
 # 초기 상태 설정: st.session_state를 사용하여 상태 초기화
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []  # 채팅 기록 초기화
-
-if "user_input_field" not in st.session_state:
-    st.session_state.user_input_field = ""
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 if "title" not in st.session_state:
     st.session_state.title = ""
@@ -108,106 +103,52 @@ if st.session_state.title:
     # 오른쪽 컬럼 (채팅창) 부분
     with col2:
         st.subheader("AI 채팅")
+        chat_container = st.container(height=600)
 
-        # CSS, 채팅 내역, JavaScript를 모두 하나의 HTML로 통합
-        chat_html = f"""
-        <style>
-        .chat-container {{
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 50px);
-            overflow-y: auto;
-            border: 1px solid #ddd;
-            padding: 10px;
-            padding-bottom: 10px;
-            margin-bottom: 50px;
-            background-color: #f7f7f7;
-        }}
-
-        .user-message {{
-            background-color: #1AB5D5;
-            color: #000;
-            border-radius: 10px;
-            padding: 8px;
-            margin: 5px;
-            align-self: flex-end;
-            max-width: 60%;
-            word-wrap: break-word;
-        }}
-
-        .bot-message {{
-            background-color: #ECECEC;
-            color: #000;
-            border-radius: 10px;
-            padding: 8px;
-            margin: 5px;
-            align-self: flex-start;
-            max-width: 60%;
-            word-wrap: break-word;
-        }}
-
-        .chat-input {{
-            width: calc(100% - 20px);
-            padding: 10px;
-            margin-top: 10px;
-        }}
-        </style>
-
-        <div class="chat-container" id="chat-container">
-            {''.join([
-                f'<div class="user-message">{chat["user"]}</div>' if "user" in chat 
-                else f'<div class="bot-message">{chat["bot"]}</div>'
-                for chat in st.session_state.chat_history
-            ])}
-        </div>
-
-        <script>
-            function scrollToBottom() {{
-                const chatContainer = document.getElementById('chat-container');
-                if (chatContainer) {{
-                    chatContainer.scrollTop = chatContainer.scrollHeight+200;
-                }}
-            }}
-
-            // 초기 스크롤
-            scrollToBottom();
-            
-            // DOM 변경 감지를 위한 MutationObserver 설정
-            const observer = new MutationObserver(scrollToBottom);
-            const chatContainer = document.getElementById('chat-container');
-            if (chatContainer) {{
-                observer.observe(chatContainer, {{ 
-                    childList: true, 
-                    subtree: true 
-                }});
-            }}
-        </script>
-        """
-
-        # components.v1.html을 사용하여 통합된 HTML 실행
-        st.components.v1.html(chat_html, height=500)
-
-        # 입력 폼
-        with st.form(key="chat_form", clear_on_submit=True):
-            user_input = st.text_input("메시지를 입력하세요:", key="user_input_field")
-            submit_button = st.form_submit_button("전송")
-
-            if submit_button and user_input.strip():
-                current_time = datetime.now(kst).strftime("%H:%M")
-
-                # 사용자 메시지 추가
-                st.session_state.chat_history.append(
-                    {"user": f"{user_input} ({current_time})"}
+        # 채팅창 출력
+        with chat_container:
+            chat_container.markdown(
+                "<div style='height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f7f7f7; display: flex; flex-direction: column;'>",
+                unsafe_allow_html=True,
+            )
+            for message in st.session_state.messages:
+                alignment = (
+                    "flex-start" if message["role"] == "assistant" else "flex-end"
                 )
-
-                # 봇 응답 생성 및 추가
-                bot_response = requests.get(
-                    "http://127.0.0.1:8010/chat",
-                    params={"prompt": user_input},
-                ).json()
-
-                st.session_state.chat_history.append(
-                    {"bot": f"{bot_response.get('result')} ({current_time})"}
+                color = "#ECECEC" if message["role"] == "assistant" else "#1AB5D5"
+                chat_container.markdown(
+                    f"<div style='align-self: {alignment}; background-color: {color}; border-radius: 10px; padding: 8px; margin: 5px; display: inline-block; max-width: 60%;'>{message['content']}</div>",
+                    unsafe_allow_html=True,
                 )
+            chat_container.markdown("</div>", unsafe_allow_html=True)
 
-                st.rerun()
+        # 채팅 입력 폼
+        chat_input_placeholder = st.empty()
+        if prompt := chat_input_placeholder.text_input(
+            "메시지를 입력하세요", key="chat_input_field"
+        ):
+            current_time = datetime.now(kst).strftime("%H:%M")
+
+            # 사용자 메시지 추가
+            st.session_state.messages.append(
+                {"role": "user", "content": f"{prompt} ({current_time})"}
+            )
+            chat_container.markdown(
+                f"<div style='align-self: flex-end; background-color: #1AB5D5; border-radius: 10px; padding: 8px; margin: 5px; display: inline-block; max-width: 60%;'>{prompt} ({current_time})</div>",
+                unsafe_allow_html=True,
+            )
+
+            # 봇 응답 생성 및 추가
+            response = requests.get(
+                "http://127.0.0.1:8010/chat",
+                params={"prompt": prompt},
+            )
+            if response.status_code == 200:
+                bot_response = response.json().get("result", "응답이 없습니다.")
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": f"{bot_response} ({current_time})"}
+                )
+                chat_container.markdown(
+                    f"<div style='align-self: flex-start; background-color: #ECECEC; border-radius: 10px; padding: 8px; margin: 5px; display: inline-block; max-width: 60%;'>{bot_response} ({current_time})</div>",
+                    unsafe_allow_html=True,
+                )
