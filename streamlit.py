@@ -21,8 +21,37 @@ if "title" not in st.session_state:
     st.session_state.language = ""
     st.session_state.transcript = []
 
+if "last_input" not in st.session_state:
+    st.session_state.last_input = ""
+
 if "transcript_expanded" not in st.session_state:
     st.session_state.transcript_expanded = False
+
+
+def display_message(role, content):
+    if role == "user":
+        st.markdown(
+            f"""
+            <div style='display: flex; justify-content: flex-end;'>
+                <div style='background-color: #DCF8C6; color: black; border-radius: 10px; padding: 8px; margin: 5px; max-width: 70%;'>
+                    {content}
+                </div>
+            </div>
+        """,
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            f"""
+            <div style='display: flex; justify-content: flex-start;'>
+                <div style='background-color: #FFFFFF; color: black; border-radius: 10px; padding: 8px; margin: 5px; max-width: 70%;'>
+                    {content}
+                </div>
+            </div>
+        """,
+            unsafe_allow_html=True,
+        )
+
 
 # 유튜브 URL 입력 받기
 url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
@@ -100,55 +129,89 @@ if st.session_state.title:
             else:
                 st.write("자막 또는 음성 인식 결과가 없습니다.")
 
-    # 오른쪽 컬럼 (채팅창) 부분
     with col2:
         st.subheader("AI 채팅")
+
+        # 채팅 컨테이너
         chat_container = st.container(height=600)
 
         # 채팅창 출력
         with chat_container:
-            chat_container.markdown(
-                "<div style='height: 400px; overflow-y: auto; border: 1px solid #ddd; padding: 10px; background-color: #f7f7f7; display: flex; flex-direction: column;'>",
-                unsafe_allow_html=True,
-            )
             for message in st.session_state.messages:
-                alignment = (
-                    "flex-start" if message["role"] == "assistant" else "flex-end"
+                display_message(message["role"], message["content"])
+
+        # 채팅 입력 처리 함수
+        def process_input():
+            if (
+                st.session_state.chat_input
+                and st.session_state.chat_input != st.session_state.last_input
+            ):
+                current_time = datetime.now(kst).strftime("%H:%M")
+
+                # 사용자 메시지 추가
+                user_message = f"{st.session_state.chat_input} ({current_time})"
+                st.session_state.messages.append(
+                    {"role": "user", "content": user_message}
                 )
-                color = "#ECECEC" if message["role"] == "assistant" else "#1AB5D5"
-                chat_container.markdown(
-                    f"<div style='align-self: {alignment}; background-color: {color}; border-radius: 10px; padding: 8px; margin: 5px; display: inline-block; max-width: 60%;'>{message['content']}</div>",
-                    unsafe_allow_html=True,
-                )
-            chat_container.markdown("</div>", unsafe_allow_html=True)
+
+                # 사용자 메시지 즉시 표시
+                display_message("user", user_message)
+
+                # 봇 응답 생성 중임을 표시
+                with st.spinner("AI가 응답을 생성 중입니다..."):
+                    # 봇 응답 생성 및 추가
+                    response = requests.get(
+                        "http://127.0.0.1:8010/chat",
+                        params={"prompt": st.session_state.chat_input},
+                    )
+                    if response.status_code == 200:
+                        bot_response = response.json().get("result", "응답이 없습니다.")
+                        bot_message = f"{bot_response} ({current_time})"
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": bot_message}
+                        )
+
+                        # 봇 메시지 표시
+                        display_message("assistant", bot_message)
+
+                # 마지막 입력 업데이트
+                st.session_state.last_input = st.session_state.chat_input
+                # 입력 필드 초기화
+                st.session_state.chat_input = ""
 
         # 채팅 입력 폼
-        chat_input_placeholder = st.empty()
-        if prompt := chat_input_placeholder.text_input(
-            "메시지를 입력하세요", key="chat_input_field"
-        ):
-            current_time = datetime.now(kst).strftime("%H:%M")
+        chat_input = st.text_input(
+            "메시지를 입력하세요", key="chat_input", on_change=process_input
+        )
 
-            # 사용자 메시지 추가
-            st.session_state.messages.append(
-                {"role": "user", "content": f"{prompt} ({current_time})"}
-            )
-            chat_container.markdown(
-                f"<div style='align-self: flex-end; background-color: #1AB5D5; border-radius: 10px; padding: 8px; margin: 5px; display: inline-block; max-width: 60%;'>{prompt} ({current_time})</div>",
-                unsafe_allow_html=True,
-            )
+        # 'Enter' 키 처리를 위한 JavaScript
+        st.markdown(
+            """
+            <script>
+                const inputElement = window.parent.document.querySelector('.stTextInput input');
+                inputElement.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        setTimeout(() => {
+                            const submitButton = window.parent.document.querySelector('button[kind="primaryFormSubmit"]');
+                            if (submitButton) {
+                                submitButton.click();
+                            }
+                        }, 10);
+                    }
+                });
+            </script>
+        """,
+            unsafe_allow_html=True,
+        )
 
-            # 봇 응답 생성 및 추가
-            response = requests.get(
-                "http://127.0.0.1:8010/chat",
-                params={"prompt": prompt},
-            )
-            if response.status_code == 200:
-                bot_response = response.json().get("result", "응답이 없습니다.")
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": f"{bot_response} ({current_time})"}
-                )
-                chat_container.markdown(
-                    f"<div style='align-self: flex-start; background-color: #ECECEC; border-radius: 10px; padding: 8px; margin: 5px; display: inline-block; max-width: 60%;'>{bot_response} ({current_time})</div>",
-                    unsafe_allow_html=True,
-                )
+    # 스크롤을 최하단으로 이동
+    st.markdown(
+        """
+        <script>
+            var elements = window.parent.document.querySelectorAll('.stMarkdown');
+            var lastElement = elements[elements.length - 1];
+            lastElement.scrollIntoView();
+        </script>
+    """,
+        unsafe_allow_html=True,
+    )
