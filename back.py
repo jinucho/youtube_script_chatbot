@@ -18,7 +18,7 @@ from youtube_transcript_api import VideoUnavailable
 
 # 디바이스 설정
 device = "cuda" if torch.cuda.is_available() else "cpu"
-compute_type = "float16" if device=="cuda" else "int8"
+compute_type = "float16" if device == "cuda" else "int8"
 
 # Whisper 모델 로드
 model = WhisperModel("large-v3", device=device, compute_type=compute_type)
@@ -81,16 +81,20 @@ async def get_script(url, language="ko"):
         yt = await create_youtube_instance(url)
         # 오디오 스트림 필터링
         audio_stream = yt.streams.filter(only_audio=True).first()
-        
+
         if not audio_stream:
-            raise HTTPException(status_code=404, detail="오디오 스트림을 찾을 수 없습니다.")
+            raise HTTPException(
+                status_code=404, detail="오디오 스트림을 찾을 수 없습니다."
+            )
 
         # 임시 디렉터리 및 파일 이름 생성
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_audio_file = os.path.join(temp_dir, f"{uuid.uuid4()}_temp_audio.wav")
 
             # 오디오 데이터를 임시 파일로 저장
-            await run_in_threadpool(audio_stream.download, output_path=temp_dir, filename=temp_audio_file)
+            await run_in_threadpool(
+                audio_stream.download, output_path=temp_dir, filename=temp_audio_file
+            )
             print(f"오디오 스트림 다운로드 완료: {time.time() - start_time}초 소요")
 
             # 오디오 파일을 Whisper 모델에 입력하여 텍스트 변환 수행
@@ -99,7 +103,7 @@ async def get_script(url, language="ko"):
                 temp_audio_file,
                 beam_size=5,
                 task="transcribe",
-                language=language,
+                # language=language,
                 condition_on_previous_text=False,
             )
 
@@ -128,11 +132,11 @@ async def get_script(url, language="ko"):
                         if item["text"] == text:
                             item["end"] = round(end, 2)
                             break
-                        
+
             # 임시 파일 삭제
             if os.path.exists(temp_audio_file):
                 os.remove(temp_audio_file)
-                
+
         # 변환된 텍스트 반환
         print(f"텍스트 변환 완료: {time.time() - start_time}초 소요")
         return transcript_with_timestamps
