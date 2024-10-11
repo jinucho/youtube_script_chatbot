@@ -11,12 +11,18 @@ class WhisperTranscriptionService:
     async def transcribe(self, audio_url: str):
         segments, info = self.model.transcribe(audio_url)
         transcript = self._process_segments(segments)
+        print("텍스트 추출 완료")
         return {"script": transcript, "language": info.language}
 
     def _process_segments(self, segments):
         transcript = []
         for segment in segments:
             transcript.append(
-                {"start": segment.start, "end": segment.end, "text": segment.text}
+                {
+                    "start": round(segment.start, 2),
+                    "end": round(segment.end, 2),
+                    "text": segment.text,
+                }
             )
+        print("스크립트 정리 완료")
         return transcript

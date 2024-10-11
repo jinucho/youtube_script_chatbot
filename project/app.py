@@ -88,6 +88,7 @@ def process_input():
             with requests.post(
                 url, headers=headers, json=data, stream=True
             ) as response:
+                print(f"Response status code: {response.json()}")
                 bot_message = ""
                 for chunk in response.iter_lines(decode_unicode=True):
                     if chunk:
