@@ -5,3 +5,4 @@ cookies.*
 __pycache__
 ._*.*
 .DS_Store
+*.log
