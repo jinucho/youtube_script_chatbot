@@ -1,9 +1,9 @@
 from faster_whisper import WhisperModel
-from config import Settings
+from config import settings
 
 
 class WhisperTranscriptionService:
-    def __init__(self, settings: Settings):
+    def __init__(self):
         self.model = WhisperModel(
             "large-v3", device=settings.DEVICE, compute_type=settings.COMPUTE_TYPE
         )

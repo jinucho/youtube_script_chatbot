@@ -1,10 +1,13 @@
-from fastapi import FastAPI, Depends, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse
-from youtube_utils import YouTubeService
-from whisper_transcription import WhisperTranscriptionService
-from langchain_utils import LangChainService
+# main.py
+import json
+
 from config import settings
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
+from langchain_utils import LangChainService
+from whisper_transcription import WhisperTranscriptionService
+from youtube_utils import YouTubeService
 
 app = FastAPI()
 
@@ -21,16 +24,16 @@ def get_settings():
     return settings
 
 
-def get_youtube_service(settings: settings = Depends(get_settings)):
-    return YouTubeService(settings)
+def get_youtube_service():
+    return YouTubeService()
 
 
-def get_whisper_service(settings: settings = Depends(get_settings)):
-    return WhisperTranscriptionService(settings)
+def get_whisper_service():
+    return WhisperTranscriptionService()
 
 
-def get_langchain_service(settings: settings = Depends(get_settings)):
-    return LangChainService(settings)
+def get_langchain_service():
+    return LangChainService()
 
 
 @app.get("/get_title_hash")
@@ -50,7 +53,7 @@ async def get_script_summary(
     video_info = await youtube_service.get_video_info(url)
     transcript = await whisper_service.transcribe(video_info["audio_url"])
     summary = await langchain_service.summarize(transcript)
-    await langchain_service.prepare_retriever(transcript)
+    # prepare_retriever는 summarize 메서드 내에서 자동으로 호출되므로 여기서는 제거합니다.
     return {
         "summary_result": summary,
         "language": transcript["language"],
@@ -63,15 +66,28 @@ async def rag_stream_chat(
     request: Request,
     langchain_service: LangChainService = Depends(get_langchain_service),
 ):
-    data = await request.json()
-    prompt = data.get("prompt")
+    try:
+        data = await request.json()
+        prompt = data.get("prompt")
+        if not prompt:
+            raise HTTPException(status_code=400, detail="Prompt is required")
 
-    async def generate():
-        async for chunk in langchain_service.stream_chat(prompt):
-            yield f"data: {chunk}\n\n"
-        yield "data: [DONE]\n\n"
+        async def generate():
+            try:
+                async for chunk in langchain_service.stream_chat(prompt):
+                    yield f"data: {json.dumps({'content': chunk})}\n\n"
+                yield "data: [DONE]\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                yield "data: [DONE]\n\n"
 
-    return StreamingResponse(generate(), media_type="text/event-stream")
+        return StreamingResponse(generate(), media_type="text/event-stream")
+    except json.JSONDecodeError:
+        return JSONResponse(
+            status_code=400, content={"error": "Invalid JSON in request body"}
+        )
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 if __name__ == "__main__":

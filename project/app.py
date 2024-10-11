@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 from datetime import datetime, timedelta, timezone
+import json
 
 # 한국 표준시(KST) 시간대 설정
 kst = timezone(timedelta(hours=9))
@@ -88,18 +89,23 @@ def process_input():
                 url, headers=headers, json=data, stream=True
             ) as response:
                 bot_message = ""
-                for chunk in response.iter_content(
-                    chunk_size=None, decode_unicode=True
-                ):
+                for chunk in response.iter_lines(decode_unicode=True):
                     if chunk:
                         chunk_data = chunk.strip()
                         if chunk_data.startswith("data: "):
                             chunk_content = chunk_data[6:]
-                            if chunk_content != "[DONE]":
-                                bot_message += chunk_content
-                                # 실시간으로 메시지 업데이트
-                                update_chat_display(bot_message + "▌")
-                            else:
+                            if chunk_content == "[DONE]":
+                                break
+                            try:
+                                content = json.loads(chunk_content)
+                                if "content" in content:
+                                    bot_message += content["content"]
+                                    update_chat_display(bot_message + "▌")
+                                elif "error" in content:
+                                    st.error(f"Error: {content['error']}")
+                                    break
+                            except json.JSONDecodeError:
+                                st.error(f"Invalid JSON: {chunk_content}")
                                 break
 
         # 최종 메시지 저장

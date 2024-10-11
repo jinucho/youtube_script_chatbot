@@ -1,10 +1,10 @@
 from pytubefix import YouTube
 import re
-from config import Settings
+from config import settings
 
 
 class YouTubeService:
-    def __init__(self, settings: Settings):
+    def __init__(self):
         self.settings = settings
 
     async def get_title_and_hashtags(self, url: str):
