@@ -1,5 +1,8 @@
 # youtube_script_chatbot
 
+## 개요
+youtube 영상을 다운로드 받고 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요약하고 영상의 내용을 기반으로 챗봇 서비스를 제공합니다.
+
 ## DEMO
 ![video](DEMO.mov)
 
