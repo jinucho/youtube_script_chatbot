@@ -1,5 +1,8 @@
 # youtube_script_chatbot
 
+## DEMO
+![video](DEMO.mov)
+
 ## history
 
 ### 2024.10.11
