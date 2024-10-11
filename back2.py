@@ -47,8 +47,33 @@ logging.langsmith("Youtube_Script_Chatbot")
 device = "cuda" if torch.cuda.is_available() else "cpu"
 compute_type = "float16" if device == "cuda" else "int8"
 
+splitter = RecursiveCharacterTextSplitter(chunk_size=100, chunk_overlap=10)
+embeddings = OpenAIEmbeddings()
+
+
 summary_prompt = hub.pull("teddynote/summary-stuff-documents-korean")
-summary_prompt.template = 'Please summarize the sentence according to the following REQUEST.\nREQUEST:\n1. Summarize the main points in bullet points in KOREAN.\n2. Each summarized sentence must start with an emoji that fits the meaning of the each sentence.\n3. Use various emojis to make the summary more interesting.\n4. Translate the summary into KOREAN if it is written in ENGLISH.\n5. DO NOT translate any technical terms.\n6. DO NOT include any unnecessary information.\n7. Please refer to each summary and indicate the key topic.\n\nCONTEXT:\n{context}\n\nSUMMARY:"\n'
+summary_prompt.template = 'Please summarize the sentence according to the following REQUEST.\nREQUEST:\n1. Summarize the main points in bullet points in KOREAN.\n2. Each summarized sentence must start with an emoji that fits the meaning of the each sentence.\n3. Use various emojis to make the summary more interesting.\n4. Translate the summary into KOREAN if it is written in ENGLISH.\n5. DO NOT translate any technical terms.\n6. DO NOT include any unnecessary information.\n7. Please refer to each summary and indicate the key topic.\n8. If the original text is in English, we have already provided a summary translated into Korean, so please do not provide a separate translation.\n\nCONTEXT:\n{context}\n\nSUMMARY:"\n'
+
+chat_prompt = PromptTemplate.from_template(
+    """당신은 유튜브 스크립트 기반의 질문-답변(Question-Answering)을 수행하는 친절한 AI 어시스턴트입니다. 
+당신의 임무는 주어진 영상의 텍스트 문맥(context)과 내부 지식을 활용하여 주어진 질문(question)에 답하는 것입니다.
+
+1. 검색된 다음 문맥(context)을 사용하여 질문(question)에 답하세요. 
+2. 영상과 관련 없는 질문일 경우 "영상과 관계 없는 질문 입니다." 라고 답하세요.
+3. 만약, 주어진 문맥(context)에서 답을 찾을 수 없다면, 내부 지식(internal knowledge)을 사용하여 답변을 생성하세요.
+4. 만약 문맥에서 답을 찾을 수 없고 내부 지식으로도 답변할 수 없다면, `주어진 정보에서 질문에 대한 답변을 찾을 수 없습니다`라고 답하세요.
+
+한글로 답변해 주세요. 단, 기술적인 용어나 이름은 번역하지 않고 그대로 사용해 주세요.
+
+#Question: 
+{question} 
+
+#Context: 
+{context} 
+
+#Answer:"""
+)
+
 
 llm = ChatOpenAI(
     model_name="gpt-4o-mini",
@@ -208,14 +233,17 @@ async def get_script_summary(url):
                 with open(temp_script, "w") as file:
                     for text in [doc.page_content for doc in docs]:
                         file.write(text + "\n")
-                docs = TextLoader(temp_script).load()
+                global DOCS
+                DOCS = TextLoader(temp_script).load()
                 stuff_chain = create_stuff_documents_chain(llm, summary_prompt)
-                summary_result = stuff_chain.invoke({"context": docs})
+                global SUMMARY_RESULT
+                SUMMARY_RESULT = stuff_chain.invoke({"context": DOCS})
                 if os.path.exists(temp_script):
                     os.remove(temp_script)
                 return {
-                    "summary_result": summary_result,
+                    "summary_result": SUMMARY_RESULT,
                     "language": SCRIPT["language"],
+                    "script": script["script"],
                 }
     except Exception as e:
         return f"Error: {str(e)}"
@@ -236,12 +264,6 @@ async def get_script_summary(language):
         return f"Error: {str(e)}"
 
 
-@app.get("/chat")
-async def chat(prompt: str):
-    result = llm.invoke(prompt)
-    return {"result": result.content}
-
-
 @app.post("/stream_chat")
 async def stream_chat(request: Request):
     data = await request.json()
@@ -251,6 +273,54 @@ async def stream_chat(request: Request):
         async for chunk in llm.astream(prompt):
             yield f"data: {chunk.content}\n\n"
         yield "data: [DONE]\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+@app.post("/rag_stream_chat")
+async def stream_chat(request: Request):
+    data = await request.json()
+    prompt = data.get("prompt")
+    for line in SUMMARY_RESULT.strip().split("\n"):
+        # 줄이 비어 있지 않다면 Document로 생성하고, 요약 내용임을 metadata로 추가
+        if line.strip():
+            DOCS[0].page_content += line + "\n"
+    split_docs = splitter.split_documents(DOCS)
+    vec_store = FAISS.from_documents(split_docs, embeddings)
+    bm25_retriever = BM25Retriever.from_documents(split_docs)
+    bm25_retriever.k = 10
+    vec_retriever = vec_store.as_retriever(search_kwargs={"k": 10})
+    ensemble_retriever = EnsembleRetriever(
+        retrievers=[
+            bm25_retriever,
+            vec_retriever,
+        ],
+        weights=[0.7, 0.3],
+    )
+    # 단계 8: 체인(Chain) 생성
+    chain = (
+        {"context": ensemble_retriever, "question": RunnablePassthrough()}
+        | chat_prompt
+        | llm
+        | StrOutputParser()
+    )
+    # print(f"분리된 문서 : {split_docs[0]}")
+
+    async def generate():
+        try:
+            async for chunk in chain.astream(prompt):
+                # print(f"Received chunk: {chunk}")  # 로그 추가
+                if isinstance(chunk, str):
+                    yield f"data: {chunk}\n\n"
+                elif hasattr(chunk, "content"):
+                    yield f"data: {chunk.content}\n\n"
+                else:
+                    yield f"data: {str(chunk)}\n\n"
+                await asyncio.sleep(0)
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            # print(f"Error in generate: {e}")  # 로그 추가
+            yield f"data: Error: {str(e)}\n\n"
 
     return StreamingResponse(generate(), media_type="text/event-stream")
 

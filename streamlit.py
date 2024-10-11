@@ -30,7 +30,7 @@ st.markdown(
     """
 <style>
 .chat-container {
-    height: 400px;
+    height: 800px;
     overflow-y: auto;
     border: 1px solid #ddd;
     padding: 10px;
@@ -80,7 +80,7 @@ def process_input():
 
         # 봇 응답 생성 및 추가 (스트리밍)
         with st.spinner("AI가 응답을 생성 중입니다..."):
-            url = "http://127.0.0.1:8010/stream_chat"
+            url = "http://127.0.0.1:8010/rag_stream_chat"
             headers = {"Content-Type": "application/json"}
             data = {"prompt": st.session_state.chat_input}
 
@@ -147,21 +147,16 @@ if st.button("스크립트 추출"):
                 )
 
                 with st.spinner("요약 중 입니다."):
-                    summary_response = requests.get(
+                    response = requests.get(
                         "http://127.0.0.1:8010/get_script_summary",
                         params={"url": url},
                     ).json()
-                    st.session_state.summary = summary_response.get(
+                    st.session_state.summary = response.get(
                         "summary_result", "요약 내용이 없습니다."
                     )
-                    st.session_state.language = summary_response.get("language")
+                    st.session_state.language = response.get("language")
 
-                with st.spinner("전체 스크립트"):
-                    script_response = requests.get(
-                        "http://127.0.0.1:8010/get_script",
-                        params={"language": st.session_state.language},
-                    ).json()
-                    st.session_state.transcript = script_response.get("script", [])
+                    st.session_state.transcript = response.get("script", [])
 
 # URL이 입력되었고, 데이터가 session_state에 저장된 경우 표시
 if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아웃 표시
