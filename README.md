@@ -20,8 +20,6 @@
 
 ----------------------------------------------------------------------------------------------------------------------------------------
 
-
-
 ### 2024.10.10
 #### 주피터 노트북.
 1. whisper stt(번역하지 않고 원문 그대로 추출)
@@ -50,7 +48,7 @@
 
 ----------------------------------------------------------------------------------------------------------------------------------------
 
-### 2024.10.08
+### 2024.10.07
 1. ~~유튜브 영상 다운로드 함수~~ / 영상은 웹에서 표시만
 2. ~~영상에서 음성 추출 / 영상 내 스크립트 추출은 제외~~ / 1차완료
 3. ~~음성을 텍스트로 변환~~/ 1차완료
@@ -61,3 +59,84 @@
 ### ToDo
 
 1. 스크립트 추출 최적화 (whisper 비동기 처리)
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### 2024.10.04
+
+1. ~~유튜브 영상 다운로드 함수~~ / 영상은 웹에서 표시만
+2. 영상에서 음성 추출 / 영상 내 스크립트 추출은 제외
+3. 음성을 텍스트로 변환
+4. 변환 된 텍스트에서 대주제, 소주제 생성 및 소주제 별로 문단 구분
+5. 적절하게 전처리된 문단을 RAG용 문서로 사용
+6. LLM과 3번의 텍스트와 연결(langchain) 
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### 2024.06.28
+
+1. 유튜브 영상 다운로드 함수
+2. 영상에서 음성 추출
+3. 음성을 텍스트로 변환 -> 텍스트를 RAG용 문서로 사용
+4. 영상을 프레임 단위로 분할 및 프레임간 이미지의 차이 계산 -> 프레임간 이미지의 차이값을 통해 영상의 소주제를 구분/ 소주제마다의 key frame 이미지를 몇가지 저장
+5. LLM과 3번의 텍스트와 연결(langchain) / 챗봇으로 사용하기 위한 finetunning방법 조사 후 적용
+4. time stamp 추출
+5. 영상을 프레임 단위로 분할 및 프레임간 이미지의 차이 계산 -> time stamp마다 주요 이미지 선정
+6. LLM과 3번의 텍스트와 연결(langchain)
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### 2024.06.27
+
+1. 유튜브 영상 다운로드 함수
+2. 영상에서 음성 추출
+3. 음성을 텍스트로 변환 -> 텍스트를 RAG용 문서로 사용
+4. 영상을 프레임 단위로 분할 및 프레임간 이미지의 차이 계산 -> 프레임간 이미지의 차이값을 통해 영상의 소주제를 구분/ 소주제마다의 key frame 이미지를 몇가지 저장
+5. LLM과 3번의 텍스트와 연결(langchain) / 챗봇으로 사용하기 위한 finetunning방법 조사 후 적용
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
+### 2024.06.20 사용할 함수 기록
+```python
+from pytube import YouTube
+from moviepy.editor import *
+import speech_recognition as sr
+import cv2
+import os
+#유튜브 영상 다운로드 함수
+def download_video(url):
+    yt = YouTube(url)
+    video = yt.streams.filter(file_extension='mp4').first()
+    video.download(filename='downloaded_video.mp4')
+    return 'downloaded_video.mp4'
+#영상에서 음성 추출
+def extract_audio(video_path):
+    video = VideoFileClip(video_path)
+    audio = video.audio
+    audio.write_audiofile('extracted_audio.wav')
+    return 'extracted_audio.wav'
+#음성을 텍스트로 변환
+def transcribe_audio(audio_path):
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(audio_path) as source:
+        audio_data = recognizer.record(source)
+        text = recognizer.recognize_google(audio_data)
+        return text
+# 영상을 프레임 단위로 분할 및 프레임간 이미지의 차이 계산
+import cv2
+cap = cv2.VideoCapture('vancouver2.mp4')
+fps = cap.get(cv2.CAP_PROP_FPS)
+timestamps = [cap.get(cv2.CAP_PROP_POS_MSEC)]
+calc_timestamps = [0.0]
+while(cap.isOpened()):
+frame_exists, curr_frame = cap.read()
+if frame_exists:
+  timestamps.append(cap.get(cv2.CAP_PROP_POS_MSEC))
+  calc_timestamps.append(calc_timestamps[-1] + 1000/fps)
+else:
+  break
+cap.release()
+for i, (ts, cts) in enumerate(zip(timestamps, calc_timestamps)):
+  print('Frame %d difference:'%i, abs(ts - cts))
+```
+
