@@ -8,6 +8,26 @@ youtube 영상을 다운로드 받고 영상 내 음성을 텍스트로 변환�
 
 ## history
 
+### 2024.10.12
+
+#### streamlit, backend
+1. 프로세스 정리 및 코드 분리 및 최적화
+
+#### Docker 구성
+1. Docker 이미지 생성 및 local 구동 확인
+2. 이미지 docker hub에 업로드
+3. RUNPOD serverless 배포 시도
+
+#### ISSUE
+1. RUNPOD serverless 정상 동작 하지 않는 것으로 보임
+
+### ToDo
+1. 챗 히스토리 추가
+2. local model 붙여보기(vllm or ollama)
+3. RUNPOD serverless 배포를 위한 실패 원인 파악
+
+----------------------------------------------------------------------------------------------------------------------------------------
+
 ### 2024.10.11
 
 #### streamlit, backend

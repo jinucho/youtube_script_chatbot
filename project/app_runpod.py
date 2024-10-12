@@ -3,6 +3,12 @@ import requests
 from datetime import datetime, timedelta, timezone
 import uuid
 import json
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+TOKEN = os.getenv("RUNPOD_TOKEN")
 
 # 한국 표준시(KST) 시간대 설정
 kst = timezone(timedelta(hours=9))
@@ -85,7 +91,7 @@ def process_input():
 
         # 봇 응답 생성 및 추가 (스트리밍)
         with st.spinner("AI가 응답을 생성 중입니다..."):
-            url = "http://0.0.0.0:8080/rag_stream_chat"
+            url = "https://api.runpod.ai/v2/b6wkrofoagngld/run?route=/rag_stream_chat"
             headers = {
                 "Content-Type": "application/json",
                 "x-session-id": st.session_state.session_id,  # session_id를 헤더에 포함
@@ -149,10 +155,20 @@ if st.button("스크립트 추출"):
                 "x-session-id": st.session_state.session_id
             }  # 세션 ID 헤더에 포함
             # API 호출 결과를 st.session_state에 저장하여 리렌더링 없이 데이터를 유지하도록 함
-            response = requests.get(
-                "http://0.0.0.0:8080/get_title_hash",
-                params={"url": url},
-                headers=headers,
+            response = requests.post(
+                "https://api.runpod.ai/v2/b6wkrofoagngld/runsync",
+                # get_title_hash
+                body={
+                    "input": {
+                        "api": {
+                            "method": "GET",
+                            "endpoint": "get_title_hash",
+                            "params": {"url": url},
+                        }
+                    },
+                    "headers": headers,
+                },
+                headers={"Authorization": f"Bearer {TOKEN}"},
             )
             if response.status_code == 200:
                 data = response.json()
@@ -163,13 +179,20 @@ if st.button("스크립트 추출"):
                 )
 
                 with st.spinner("요약 중 입니다."):
-                    response = requests.get(
-                        "http://0.0.0.0:8080/get_script_summary",
-                        params={"url": url},
-                        headers=headers,
-                    ).json()
-                    st.session_state.summary = response.get(
-                        "summary_result", "요약 내용이 없습니다."
+                    response = requests.post(
+                        "https://api.runpod.ai/v2/b6wkrofoagngld/get_script_summary",
+                        # get_title_hash
+                        body={
+                            "input": {
+                                "api": {
+                                    "method": "GET",
+                                    "endpoint": "get_title_hash",
+                                    "params": {"url": url},
+                                }
+                            },
+                            "headers": headers,
+                        },
+                        headers={"Authorization": f"Bearer {TOKEN}"},
                     )
                     st.session_state.language = response.get("language")
 
