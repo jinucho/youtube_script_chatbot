@@ -1,13 +1,15 @@
 import asyncio
 import logging
 import os
+import warnings
+from typing import List
 
 from config import settings
 from dotenv import load_dotenv
-from typing import List
 from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chat_models import ChatOpenAI
+from langchain.docstore.document import Document
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import PromptTemplate
@@ -16,10 +18,8 @@ from langchain.schema.output_parser import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
-from langchain_core.documents import Document
 
-# 임시 추가 라이브러리
-from langchain.docstore.document import Document
+warnings.filterwarnings(action="ignore")
 
 logger = logging.getLogger(__name__)
 

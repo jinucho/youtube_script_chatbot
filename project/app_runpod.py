@@ -1,14 +1,22 @@
-import streamlit as st
-import requests
-from datetime import datetime, timedelta, timezone
-import uuid
 import json
-from dotenv import load_dotenv
 import os
+import smtplib
+import uuid
+from datetime import datetime, timedelta, timezone
+from mail import send_feedback_email
+
+import requests
+from dotenv import load_dotenv
+
+import streamlit as st
 
 load_dotenv()
 
-TOKEN = os.getenv("RUNPOD_TOKEN")
+RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
+RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
+
+# RunPod API 엔드포인트 URL
+RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
 
 # 한국 표준시(KST) 시간대 설정
 kst = timezone(timedelta(hours=9))
@@ -91,20 +99,27 @@ def process_input():
 
         # 봇 응답 생성 및 추가 (스트리밍)
         with st.spinner("AI가 응답을 생성 중입니다..."):
-            url = "https://api.runpod.ai/v2/b6wkrofoagngld/run?route=/rag_stream_chat"
             headers = {
+                "Authorization": f"Bearer {RUNPOD_API_KEY}",
                 "Content-Type": "application/json",
-                "x-session-id": st.session_state.session_id,  # session_id를 헤더에 포함
             }
-            data = {"prompt": st.session_state.chat_input}
+            payload = {
+                "input": {
+                    "endpoint": "rag_stream_chat",
+                    "method": "POST",
+                    "session_id": st.session_state.session_id,
+                    "headers": {"x-session-id": st.session_state.session_id},
+                    "params": {"prompt": st.session_state.chat_input},
+                }
+            }
 
             with requests.post(
-                url, headers=headers, json=data, stream=True
+                RUNPOD_API_URL, headers=headers, json=payload, stream=True
             ) as response:
                 bot_message = ""
-                for chunk in response.iter_lines(decode_unicode=True):
+                for chunk in response.iter_content(chunk_size=None):
                     if chunk:
-                        chunk_data = chunk.strip()
+                        chunk_data = chunk.decode("utf-8").strip()
                         if chunk_data.startswith("data: "):
                             chunk_content = chunk_data[6:]
                             if chunk_content == "[DONE]":
@@ -152,51 +167,52 @@ if st.button("스크립트 추출"):
             st.warning("유효한 유튜브 URL을 입력하세요.")
         else:
             headers = {
-                "x-session-id": st.session_state.session_id
-            }  # 세션 ID 헤더에 포함
-            # API 호출 결과를 st.session_state에 저장하여 리렌더링 없이 데이터를 유지하도록 함
-            response = requests.post(
-                "https://api.runpod.ai/v2/b6wkrofoagngld/runsync",
-                # get_title_hash
-                body={
-                    "input": {
-                        "api": {
-                            "method": "GET",
-                            "endpoint": "get_title_hash",
-                            "params": {"url": url},
-                        }
-                    },
-                    "headers": headers,
-                },
-                headers={"Authorization": f"Bearer {TOKEN}"},
-            )
+                "Authorization": f"Bearer {RUNPOD_API_KEY}",
+                "Content-Type": "application/json",
+            }
+
+            # get_title_hash 엔드포인트 호출
+            payload = {
+                "input": {
+                    "endpoint": "get_title_hash",
+                    "method": "GET",
+                    "params": {"url": url},
+                }
+            }
+            response = requests.post(RUNPOD_API_URL, headers=headers, json=payload)
+
             if response.status_code == 200:
                 data = response.json()
-                st.session_state.title = data.get("title", "제목")
-                st.session_state.hashtags = data.get("hashtags", "")
+                st.session_state.title = data.get("output").get("title", "제목")
+                st.session_state.hashtags = data.get("output").get("hashtags", "")
                 st.session_state.video_id = (
                     url.split("v=")[-1] if "v=" in url else url.split("/")[-1]
                 )
 
                 with st.spinner("요약 중 입니다."):
+                    # get_script_summary 엔드포인트 호출
+                    payload = {
+                        "input": {
+                            "endpoint": "get_script_summary",
+                            "method": "GET",
+                            "headers": {"x-session-id": st.session_state.session_id},
+                            "params": {"url": url},
+                        }
+                    }
                     response = requests.post(
-                        "https://api.runpod.ai/v2/b6wkrofoagngld/get_script_summary",
-                        # get_title_hash
-                        body={
-                            "input": {
-                                "api": {
-                                    "method": "GET",
-                                    "endpoint": "get_title_hash",
-                                    "params": {"url": url},
-                                }
-                            },
-                            "headers": headers,
-                        },
-                        headers={"Authorization": f"Bearer {TOKEN}"},
+                        RUNPOD_API_URL, headers=headers, json=payload
                     )
-                    st.session_state.language = response.get("language")
-
-                    st.session_state.transcript = response.get("script", [])
+                    if response.status_code == 200:
+                        summary_data = response.json()
+                        st.session_state.summary = summary_data.get("output").get(
+                            "summary_result", ""
+                        )
+                        st.session_state.language = summary_data.get("output").get(
+                            "language", ""
+                        )
+                        st.session_state.transcript = summary_data.get("output").get(
+                            "script", []
+                        )
 
 # URL이 입력되었고, 데이터가 session_state에 저장된 경우 표시
 if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아웃 표시
@@ -231,6 +247,18 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
         chat_input = st.text_input(
             "메시지를 입력하세요", key="chat_input", on_change=process_input
         )
+
+st.markdown("---")
+st.header("피드백을 보내주세요.")
+feedback = st.text_area("사용 시 불편한 점이나, 오류가 있었다면 알려주세요.:")
+if st.button("전송"):
+    if feedback:
+        if send_feedback_email(feedback, st.session_state.session_id):
+            st.success("피드백 감사합니다!")
+        else:
+            st.error("전송 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.")
+    else:
+        st.warning("피드백을 입력해 주세요.")
 
 
 # 스크롤 함수 호출 (필요한 경우)

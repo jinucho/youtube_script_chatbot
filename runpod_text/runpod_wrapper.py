@@ -9,6 +9,7 @@ RUNPOD_INTERNAL_API_HOST = os.getenv(
 
 
 def handler(event):
+    print(f"내부 주소:{RUNPOD_INTERNAL_API_HOST}")
     print(event)
     input_data = event.get("input", {})
     endpoint = input_data.get("endpoint", "").lstrip(
