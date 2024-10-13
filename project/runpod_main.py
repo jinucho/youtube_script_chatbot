@@ -184,6 +184,7 @@ async def rag_stream_chat(
 # RunPod handler 통합
 def runpod_handler(event):
     async def async_handler():
+        print(f"Received event: {event}")
         endpoint = event["input"].get("endpoint", "/")
         method = event["input"].get("method", "POST").upper()
         request_data = event["input"].get("params", {})
