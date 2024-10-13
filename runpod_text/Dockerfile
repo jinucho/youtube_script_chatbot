@@ -8,11 +8,15 @@ WORKDIR /app
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the FastAPI application code
+# Copy the FastAPI application, RunPod wrapper code, and start script
 COPY main.py ./
+COPY runpod_wrapper.py ./
+COPY start.sh ./
+
+# Ensure the start script is executable
+RUN chmod +x /app/start.sh
 
 # Expose the port FastAPI will run on
 EXPOSE 8000
 
-# Command to run the application
-ENTRYPOINT ["/usr/local/bin/python", "-m", "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["/bin/sh","-c","./start.sh"]

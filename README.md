@@ -1,7 +1,7 @@
 # youtube_script_chatbot
 
 ## 개요
-youtube 영상을 다운로드 받고 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요약하고 영상의 내용을 기반으로 챗봇 서비스를 제공합니다.
+youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요약하고 영상의 내용을 기반으로 챗봇 서비스를 제공.
 
 ## DEMO
 [![Video Label](http://img.youtube.com/vi/ltv2PGQaFQI/0.jpg)](https://www.youtube.com/watch?v=ltv2PGQaFQI)
@@ -14,14 +14,14 @@ youtube 영상을 다운로드 받고 영상 내 음성을 텍스트로 변환�
 1. cpu 버전으로 Docker 구성 및 local 테스트
 2. 이미지 docker hub에 업로드
 3. RUNPOD serverless 배포 시도
-
-#### ISSUE
-1. RUNPOD serverless 정상 동작 하지 않는 것으로 보임(requests 호출에 대한 응답 없음)
+4. 배포 실패 원인으로 
+  1. runpod serverless와 fastapi를 연결해 줄 runpod_wrapper 생성해야함
+  2. 빌드 시 플랫폼 명시(맥에서 작업 중) | docker build --platform linux/amd64 -t your-image-name .
+  3. test용 fastapi/runpod_wrapper.py 작성 및 테스트 완료
 
 ### ToDo
-1. 챗 히스토리 추가
-2. local model 붙여보기(vllm or ollama)
-3. RUNPOD serverless 배포를 위한 실패 원인 파악
+1. 실제 서비스 api용 runpod_wrapper.py 코드 작성
+2. 그에 따른 Dockerfile 수정
 
 ----------------------------------------------------------------------------------------------------------------------------------------
 
