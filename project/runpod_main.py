@@ -146,13 +146,14 @@ async def rag_stream_chat(
     session_id: str = Depends(get_session_id),
     langchain_service: LangChainService = Depends(get_langchain_service),
 ):
+    print(f"Recieved request:{vars(request)}")
     if not session_id:
         logger.error("Session ID is missing in request headers for rag_stream_chat.")
         raise HTTPException(
             status_code=400, detail="Session ID is required in request headers"
         )
     try:
-        data = await request.json()
+        data = request._json
         prompt = data.get("prompt")
         if not prompt:
             logger.error(f"[Session {session_id}] Prompt is missing in request body.")
@@ -181,41 +182,62 @@ async def rag_stream_chat(
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
-# RunPod handler 통합
+# RunPod handlerㅋ
 def runpod_handler(event):
+    print(f"Received event: {event}")
+
     async def async_handler():
-        print(f"Received event: {event}")
         endpoint = event["input"].get("endpoint", "/")
         method = event["input"].get("method", "POST").upper()
         request_data = event["input"].get("params", {})
         headers = event["input"].get("headers", {})
         session_id = headers.get("x-session-id")
 
+        # 각 서비스 인스턴스 명시적으로 생성
+        youtube_service = YouTubeService()
+        whisper_service = WhisperTranscriptionService()
+        langchain_service = (
+            LangChainService.get_instance(session_id) if session_id else None
+        )
         if method == "POST":
-            if endpoint == "/rag_stream_chat":
-                request = Request(
-                    scope={
-                        "type": "http",
-                        "method": method,
-                        "path": endpoint,
-                        "headers": [
-                            (k.encode(), v.encode()) for k, v in headers.items()
-                        ],
-                    },
-                    receive=None,
-                )
-                request._json = request_data
-                response = await rag_stream_chat(request)
-                return response
-            else:
-                return {"error": "Invalid endpoint or method"}
+            try:
+                prompt = request_data.get("prompt")
+                if not prompt:
+                    return {"error": "Prompt is required"}
+
+                # 비동기 제너레이터를 호출하여 스트리밍 데이터를 전송
+                async def stream_data():
+                    try:
+                        async for chunk in langchain_service.stream_chat(prompt):
+                            # 청크 데이터를 클라이언트로 스트리밍 전송
+                            print(f"Streaming chunk: {chunk}")  # 디버깅 목적으로 출력
+                            yield f"data: {json.dumps({'content': chunk})}\n\n"
+                        yield "data: [DONE]\n\n"  # 스트리밍 종료 신호
+                    except Exception as e:
+                        yield f"data: {json.dumps({'error': str(e)})}\n\n"
+                        yield "data: [DONE]\n\n"
+
+                # StreamingResponse로 스트림을 실시간 전송 (media_type="text/event-stream")
+                return StreamingResponse(stream_data(), media_type="text/event-stream")
+
+            except Exception as e:
+                print(f"Error during streaming: {e}")
+                return {"error": f"Error during streaming: {str(e)}"}
+
         elif method == "GET":
             if endpoint == "/get_title_hash":
-                response = await get_title_hash(url=request_data.get("url"))
+                response = await get_title_hash(
+                    url=request_data.get("url"),
+                    youtube_service=youtube_service,  # 인스턴스를 명시적으로 전달
+                )
                 return response
             elif endpoint == "/get_script_summary":
                 response = await get_script_summary(
-                    url=request_data.get("url"), session_id=session_id
+                    url=request_data.get("url"),
+                    session_id=session_id,
+                    youtube_service=youtube_service,
+                    whisper_service=whisper_service,
+                    langchain_service=langchain_service,
                 )
                 return response
             else:

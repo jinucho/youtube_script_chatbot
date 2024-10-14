@@ -1,10 +1,9 @@
 import json
 import os
-import smtplib
 import uuid
 from datetime import datetime, timedelta, timezone
 from mail import send_feedback_email
-
+import logging
 import requests
 from dotenv import load_dotenv
 
@@ -12,10 +11,13 @@ import streamlit as st
 
 load_dotenv()
 
+# # 로그 설정
+# logging.basicConfig(level=logging.DEBUG)
+# logger = logging.getLogger(__name__)
+
+# RunPod 정보
 RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
 RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
-
-# RunPod API 엔드포인트 URL
 RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
 
 # 한국 표준시(KST) 시간대 설정
@@ -24,6 +26,10 @@ kst = timezone(timedelta(hours=9))
 # Streamlit 웹 애플리케이션 설정
 st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
 st.title("유튜브 요약 및 AI 채팅")
+st.write(
+    """
+본, 서비스는 테스트용으로써 1분동안 아무 반응이 없을 경우 세션이 종료 됩니다."""
+)
 
 # 초기 상태 설정
 if "messages" not in st.session_state:
@@ -105,9 +111,8 @@ def process_input():
             }
             payload = {
                 "input": {
-                    "endpoint": "rag_stream_chat",
+                    "endpoint": "/rag_stream_chat",
                     "method": "POST",
-                    "session_id": st.session_state.session_id,
                     "headers": {"x-session-id": st.session_state.session_id},
                     "params": {"prompt": st.session_state.chat_input},
                 }
@@ -174,7 +179,7 @@ if st.button("스크립트 추출"):
             # get_title_hash 엔드포인트 호출
             payload = {
                 "input": {
-                    "endpoint": "get_title_hash",
+                    "endpoint": "/get_title_hash",
                     "method": "GET",
                     "params": {"url": url},
                 }
@@ -193,7 +198,7 @@ if st.button("스크립트 추출"):
                     # get_script_summary 엔드포인트 호출
                     payload = {
                         "input": {
-                            "endpoint": "get_script_summary",
+                            "endpoint": "/get_script_summary",
                             "method": "GET",
                             "headers": {"x-session-id": st.session_state.session_id},
                             "params": {"url": url},
