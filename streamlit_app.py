@@ -7,6 +7,7 @@ import streamlit as st
 import requests
 
 # from dotenv import load_dotenv
+
 # load_dotenv()
 from mail import send_feedback_email
 
@@ -15,12 +16,16 @@ RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
 RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
 RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
 
+
 # 한국 표준시(KST) 시간대 설정
 kst = timezone(timedelta(hours=9))
 
 # Streamlit 웹 애플리케이션 설정
 st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
 st.title("유튜브 요약 및 AI 채팅")
+st.text(f"RUNPOD_API_KEY: {RUNPOD_API_KEY}")
+st.text(f"RUNPOD_ENDPOINT_ID: {RUNPOD_ENDPOINT_ID}")
+
 st.write(
     """
 본, 서비스는 테스트용으로써 1분동안 아무 반응이 없을 경우 세션이 종료 됩니다."""
@@ -44,6 +49,8 @@ if "transcript" not in st.session_state:
 if "session_id" not in st.session_state:
     # 세션 ID 생성 (각 사용자마다 고유한 세션 ID를 생성)
     st.session_state.session_id = str(uuid.uuid4())
+
+st.write(f"세션 ID: {st.session_state.session_id}")
 
 # CSS 스타일 정의
 st.markdown(
@@ -180,7 +187,7 @@ if st.button("스크립트 추출"):
                 }
             }
             response = requests.post(RUNPOD_API_URL, headers=headers, json=payload)
-
+            st.text(f"response:{response.json()}")
             if response.status_code == 200:
                 data = response.json()
                 st.session_state.title = data.get("output").get("title", "제목")
