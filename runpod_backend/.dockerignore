@@ -2,3 +2,4 @@
 app.py
 app_runpod.py
 mail.py
+__pycache__

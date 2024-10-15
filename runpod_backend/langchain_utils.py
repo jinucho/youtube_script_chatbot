@@ -149,6 +149,9 @@ class LangChainService:
                 | StrOutputParser()
             )
             async for chunk in chain.astream(prompt):
+                logger.debug(
+                    f"Langchain Streaming for session {self.session_id}: {chunk}"
+                )
                 yield (
                     chunk
                     if isinstance(chunk, str)

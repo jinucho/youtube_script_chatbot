@@ -1,6 +1,19 @@
+import json
+import os
+import time
+import uuid
+from datetime import datetime, timedelta, timezone
 import streamlit as st
 import requests
-from datetime import datetime, timedelta, timezone
+from dotenv import load_dotenv
+from mail import send_feedback_email
+
+load_dotenv()
+
+# RunPod 정보
+RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
+RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
+RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
 
 # 한국 표준시(KST) 시간대 설정
 kst = timezone(timedelta(hours=9))
@@ -8,6 +21,10 @@ kst = timezone(timedelta(hours=9))
 # Streamlit 웹 애플리케이션 설정
 st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
 st.title("유튜브 요약 및 AI 채팅")
+st.write(
+    """
+본, 서비스는 테스트용으로써 1분동안 아무 반응이 없을 경우 세션이 종료 됩니다."""
+)
 
 # 초기 상태 설정
 if "messages" not in st.session_state:
@@ -24,6 +41,9 @@ if "summary" not in st.session_state:
     st.session_state.summary = ""
 if "transcript" not in st.session_state:
     st.session_state.transcript = []
+if "session_id" not in st.session_state:
+    # 세션 ID 생성 (각 사용자마다 고유한 세션 ID를 생성)
+    st.session_state.session_id = str(uuid.uuid4())
 
 # CSS 스타일 정의
 st.markdown(
@@ -68,7 +88,6 @@ def display_message(role, content):
     return f'<div class="{message_class}">{content}</div>'
 
 
-# 채팅 처리 함수
 def process_input():
     if (
         st.session_state.chat_input
@@ -78,34 +97,49 @@ def process_input():
         user_message = f"{st.session_state.chat_input} ({current_time})"
         st.session_state.messages.append({"role": "user", "content": user_message})
 
-        # 봇 응답 생성 및 추가 (스트리밍)
+        # 봇 응답 생성 및 추가
         with st.spinner("AI가 응답을 생성 중입니다..."):
-            url = "http://127.0.0.1:8010/rag_stream_chat"
-            headers = {"Content-Type": "application/json"}
-            data = {"prompt": st.session_state.chat_input}
+            headers = {
+                "Authorization": f"Bearer {RUNPOD_API_KEY}",
+                "Content-Type": "application/json",
+            }
+            payload = {
+                "input": {
+                    "endpoint": "/rag_stream_chat",
+                    "method": "POST",
+                    "headers": {"x-session-id": st.session_state.session_id},
+                    "params": {"prompt": st.session_state.chat_input},
+                }
+            }
 
-            with requests.post(
-                url, headers=headers, json=data, stream=True
-            ) as response:
-                bot_message = ""
-                for chunk in response.iter_content(
-                    chunk_size=None, decode_unicode=True
-                ):
-                    if chunk:
-                        chunk_data = chunk.strip()
-                        if chunk_data.startswith("data: "):
-                            chunk_content = chunk_data[6:]
-                            if chunk_content != "[DONE]":
-                                bot_message += chunk_content
-                                # 실시간으로 메시지 업데이트
-                                update_chat_display(bot_message + "▌")
-                            else:
-                                break
+            bot_message = ""
+            try:
+                response = requests.post(RUNPOD_API_URL, headers=headers, json=payload)
+                response.raise_for_status()
 
-        # 최종 메시지 저장
-        st.session_state.messages.append(
-            {"role": "assistant", "content": f"{bot_message} ({current_time})"}
-        )
+                chunks = response.json()
+                for chunk in chunks.get("output"):
+                    if "content" in chunk:
+                        content = chunk["content"]
+                        if content == "[DONE]":
+                            break
+                        bot_message += content
+                        update_chat_display(bot_message + "▌")
+                        time.sleep(0.05)
+
+                    elif "error" in chunk:
+                        st.error(f"Error: {chunk['error']}")
+                        break
+            except requests.RequestException as e:
+                st.error(f"Request failed: {str(e)}")
+            except json.JSONDecodeError:
+                st.error("Failed to decode response")
+
+            # 최종 메시지 저장
+            if bot_message:
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": f"{bot_message} ({current_time})"}
+                )
 
         st.session_state.last_input = st.session_state.chat_input
         st.session_state.chat_input = ""
@@ -129,46 +163,65 @@ url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
 # URL 입력 및 스크립트 추출을 위한 버튼 클릭 상태 확인
 if st.button("스크립트 추출"):
     if url:
-        # URL 유효성 확인 (간단한 확인: 'youtube' 문자열이 포함되어 있는지 확인)
         if "youtu" not in url:
             st.warning("유효한 유튜브 URL을 입력하세요.")
         else:
-            # API 호출 결과를 st.session_state에 저장하여 리렌더링 없이 데이터를 유지하도록 함
-            response = requests.get(
-                "http://127.0.0.1:8010/get_title_hash", params={"url": url}
-            )
+            headers = {
+                "Authorization": f"Bearer {RUNPOD_API_KEY}",
+                "Content-Type": "application/json",
+            }
+
+            # get_title_hash 엔드포인트 호출
+            payload = {
+                "input": {
+                    "endpoint": "/get_title_hash",
+                    "method": "GET",
+                    "params": {"url": url},
+                }
+            }
+            response = requests.post(RUNPOD_API_URL, headers=headers, json=payload)
+
             if response.status_code == 200:
-                # JSON 응답 파싱 및 st.session_state에 데이터 저장
                 data = response.json()
-                st.session_state.title = data.get("title", "제목")
-                st.session_state.hashtags = data.get("hashtags", "")
+                st.session_state.title = data.get("output").get("title", "제목")
+                st.session_state.hashtags = data.get("output").get("hashtags", "")
                 st.session_state.video_id = (
                     url.split("v=")[-1] if "v=" in url else url.split("/")[-1]
                 )
 
                 with st.spinner("요약 중 입니다."):
-                    response = requests.get(
-                        "http://127.0.0.1:8010/get_script_summary",
-                        params={"url": url},
-                    ).json()
-                    st.session_state.summary = response.get(
-                        "summary_result", "요약 내용이 없습니다."
+                    # get_script_summary 엔드포인트 호출
+                    payload = {
+                        "input": {
+                            "endpoint": "/get_script_summary",
+                            "method": "GET",
+                            "headers": {"x-session-id": st.session_state.session_id},
+                            "params": {"url": url},
+                        }
+                    }
+                    response = requests.post(
+                        RUNPOD_API_URL, headers=headers, json=payload
                     )
-                    st.session_state.language = response.get("language")
-
-                    st.session_state.transcript = response.get("script", [])
+                    if response.status_code == 200:
+                        summary_data = response.json()
+                        st.session_state.summary = summary_data.get("output").get(
+                            "summary_result", ""
+                        )
+                        st.session_state.language = summary_data.get("output").get(
+                            "language", ""
+                        )
+                        st.session_state.transcript = summary_data.get("output").get(
+                            "script", []
+                        )
 
 # URL이 입력되었고, 데이터가 session_state에 저장된 경우 표시
 if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아웃 표시
     col1, col2 = st.columns(2)
 
-    # 왼쪽에는 스크립트 표시
     with col1:
-        # 유튜브 비디오 삽입
         st.subheader(f"제목 : {st.session_state.title}")
         st.write(st.session_state.hashtags)
 
-        # iframe 태그를 사용하여 유튜브 비디오 임베드
         if st.session_state.video_id:
             st.markdown(
                 f'<iframe width="100%" height="600" src="https://www.youtube.com/embed/{st.session_state.video_id}" '
@@ -177,21 +230,13 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 unsafe_allow_html=True,
             )
 
-        # 요약 내용 표시
         st.subheader("요약내용")
         st.write(st.session_state.summary)
 
         with st.expander("스크립트 보기", expanded=False):
             if st.session_state.transcript:
-                with st.container(height=400):
-                    # 자막 정보 출력
-                    for item in st.session_state.transcript:
-                        st.write(f"{item['start']}초 - {item['end']}초: {item['text']}")
-
-                # 컨테이너 상태 업데이트
-                st.session_state.transcript_expanded = True
-            else:
-                st.write("자막 또는 음성 인식 결과가 없습니다.")
+                for item in st.session_state.transcript:
+                    st.write(f"{item['start']}초 - {item['end']}초: {item['text']}")
 
     with col2:
         st.subheader("AI 채팅")
@@ -202,6 +247,19 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
         chat_input = st.text_input(
             "메시지를 입력하세요", key="chat_input", on_change=process_input
         )
+
+st.markdown("---")
+st.header("피드백을 보내주세요.")
+feedback = st.text_area("사용 시 불편한 점이나, 오류가 있었다면 알려주세요.:")
+if st.button("전송"):
+    if feedback:
+        if send_feedback_email(feedback, st.session_state.session_id):
+            st.success("피드백 감사합니다!")
+        else:
+            st.error("전송 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.")
+    else:
+        st.warning("피드백을 입력해 주세요.")
+
 
 # 스크롤 함수 호출 (필요한 경우)
 st.markdown("<script>scrollToBottom();</script>", unsafe_allow_html=True)
