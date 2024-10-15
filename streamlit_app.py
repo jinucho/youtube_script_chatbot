@@ -5,10 +5,11 @@ import uuid
 from datetime import datetime, timedelta, timezone
 import streamlit as st
 import requests
-from dotenv import load_dotenv
+
+# from dotenv import load_dotenv
 from mail import send_feedback_email
 
-load_dotenv()
+# load_dotenv()
 
 # RunPod 정보
 RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
