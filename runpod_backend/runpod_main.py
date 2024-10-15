@@ -1,13 +1,13 @@
-import runpod
 import asyncio
-import json
 import logging
-import os
 import multiprocessing
+import os
+
+import runpod
+from fastapi.responses import JSONResponse
 from langchain_utils import LangChainService
 from whisper_transcription import WhisperTranscriptionService
 from youtube_utils import YouTubeService
-from fastapi.responses import StreamingResponse, JSONResponse
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["OMP_NUM_THREADS"] = "1"  # OpenMP 스레드 수 제한
@@ -81,48 +81,6 @@ async def get_script_summary(
         raise ValueError(str(e))
 
 
-# async def rag_stream_chat(
-#     prompt: str, session_id: str, langchain_service: LangChainService
-# ):
-#     if not session_id:
-#         raise ValueError("Session ID is required")
-
-#     if not prompt:
-#         raise ValueError("Prompt is required")
-
-#     async def generate():
-#         try:
-#             async for chunk in langchain_service.stream_chat(prompt):
-#                 yield f"data: {json.dumps({'content': chunk})}\n\n"
-#             yield "data: [DONE]\n\n"
-#         except Exception as e:
-#             logger.error(f"[Session {session_id}] Error during stream_chat: {e}")
-#             yield f"data: {json.dumps({'error': str(e)})}\n\n"
-#             yield "data: [DONE]\n\n"
-
-#     return StreamingResponse(generate(), media_type="text/event-stream")
-
-
-# async def rag_stream_chat(
-#     prompt: str, session_id: str, langchain_service: LangChainService
-# ):
-#     if not session_id:
-#         raise ValueError("Session ID is required")
-
-#     if not prompt:
-#         raise ValueError("Prompt is required")
-
-#     try:
-#         async for chunk in langchain_service.stream_chat(prompt):
-#             logger.debug(f"[Session {session_id}] Streaming chunk: {chunk}")
-#             yield f"content: {chunk}"  # 데이터를 바로 스트리밍
-#         yield "content: [DONE]"  # 스트리밍 종료 신호
-#     except Exception as e:
-#         logger.error(f"[Session {session_id}] Error during stream_chat: {e}")
-#         yield {"error": str(e)}  # 에러가 발생하면 에러 메시지 반환
-#         yield {"content": "[DONE]"}  # 스트리밍 종료 신호
-
-
 async def rag_stream_chat(
     prompt: str, session_id: str, langchain_service: LangChainService
 ):
@@ -164,15 +122,6 @@ def runpod_handler(event):
         )
 
         try:
-            # if method == "POST":
-            #     if endpoint == "/rag_stream_chat":
-            #         prompt = request_data.get("prompt")
-            #         # 스트리밍 데이터를 처리
-            #         return rag_stream_chat(
-            #             prompt=prompt,
-            #             session_id=session_id,
-            #             langchain_service=langchain_service,
-            #         )
             if method == "POST":
                 if endpoint == "/rag_stream_chat":
                     prompt = request_data.get("prompt")
