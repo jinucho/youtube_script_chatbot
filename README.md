@@ -10,16 +10,14 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 
 ### 2024.10.15
 
-#### Docker 구성 및 RUNPOD 배포
+#### Docker 구성 및 Backend RUNPOD 배포
 1. 실제 코드 기반 runpod_main.py 작성
-  1. uvicorn, fastapi를 제외 후 runpod serverless 내부에서 실행 가능하도록 수정
-  2. ruunpod serverless에 배포
-  3. streamlit에서 runpod server로 post 요청(단, runpod 내부에서 각 엔드포인트로 연결되는 method 명시, session_id를 headers라는 키 값에 추가로 전달)
-  4. 실제 사용 될 값은 response.json() 'output' 키 값에 저장되어 있음
-  5. 유튜브 제목, 해시태그, 요약, 전체 스크립트 출력 완료
+  1. runpod serverless에서는 JSON serializable를 지원하지 않아서(확실하지 않음), chunk 수집 후 return으로 변경
+  2. 그에맞게 streamlit 코드 변경
 
 ### ToDo
-1. runpodserverless사용에 따른 채팅 기능 수정 필요
+1. 불필요 라이브러리 제거
+2. local llm 붙여보기(vllm or ollama)
 
 ----------------------------------------------------------------------------------------------------------------------------------------
 
