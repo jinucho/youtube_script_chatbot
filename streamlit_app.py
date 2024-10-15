@@ -10,15 +10,9 @@ import requests
 # load_dotenv()
 from mail import send_feedback_email
 
-import toml
-
-config = toml.load("config.toml")
-
 # RunPod 정보
-# RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
-# RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
-RUNPOD_API_KEY = config["RUNPOD_API_KEY"]
-RUNPOD_ENDPOINT_ID = config["RUNPOD_ENDPOINT_ID"]
+RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
+RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
 RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
 
 # 한국 표준시(KST) 시간대 설정

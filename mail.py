@@ -7,22 +7,13 @@ from email.mime.text import MIMEText
 # from dotenv import load_dotenv
 
 # load_dotenv()
-
-import toml
-
-config = toml.load("config.toml")
-
 kst = timezone(timedelta(hours=9))
 
 
 def send_feedback_email(feedback, session_id):
-    # sender_email = os.getenv("SENDER_EMAIL")
-    # sender_password = os.getenv("SENDER_PASSWORD")
-    # receiver_email = os.getenv("SENDER_EMAIL")
-
-    sender_email = config["SENDER_EMAIL"]
-    sender_password = config["SENDER_PASSWORD"]
-    receiver_email = config["SENDER_EMAIL"]
+    sender_email = os.getenv("SENDER_EMAIL")
+    sender_password = os.getenv("SENDER_PASSWORD")
+    receiver_email = os.getenv("SENDER_EMAIL")
 
     message = MIMEMultipart()
     message["From"] = sender_email
