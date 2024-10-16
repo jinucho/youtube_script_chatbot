@@ -1,5 +1,4 @@
 # streamlit cloud app 배포 버전
-
 import json
 import os
 import time
@@ -15,7 +14,10 @@ from mail import send_feedback_email
 RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
 RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
 RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
-
+HEADERS = {
+    "Authorization": f"Bearer {RUNPOD_API_KEY}",
+    "Content-Type": "application/json",
+}
 
 # 한국 표준시(KST) 시간대 설정
 kst = timezone(timedelta(hours=9))
@@ -89,7 +91,7 @@ def display_message(role, content):
     return f'<div class="{message_class}">{content}</div>'
 
 
-def check_runpod_status(runpod_url, headers, payload, interval=5):
+def check_runpod_status(payload, interval=5):
     """
     RunPod 상태를 지속적으로 확인하여 'COMPLETED' 상태일 때 데이터를 반환.
     :param runpod_url: RunPod API 호출 URL
@@ -98,7 +100,7 @@ def check_runpod_status(runpod_url, headers, payload, interval=5):
     :param interval: 상태 확인 주기 (초)
     :return: 작업이 완료되면 결과 데이터 반환
     """
-    response = requests.post(runpod_url, headers=headers, json=payload)
+    response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
     if response.status_code == 200:
         result = response.json()
         if result.get("status") in ["IN_PROGRESS", "IN_QUEUE"]:
@@ -108,7 +110,7 @@ def check_runpod_status(runpod_url, headers, payload, interval=5):
             )
 
             while True:
-                status_response = requests.get(status_url, headers=headers)
+                status_response = requests.get(status_url, headers=HEADERS)
                 if status_response.status_code == 200:
                     status_data = status_response.json()
                     if status_data.get("status") == "COMPLETED":
@@ -135,10 +137,6 @@ def process_input():
 
         # 봇 응답 생성 및 추가
         with st.spinner("AI가 응답을 생성 중입니다..."):
-            headers = {
-                "Authorization": f"Bearer {RUNPOD_API_KEY}",
-                "Content-Type": "application/json",
-            }
             payload = {
                 "input": {
                     "endpoint": "/rag_stream_chat",
@@ -150,10 +148,11 @@ def process_input():
 
             bot_message = ""
             try:
-                response = requests.post(RUNPOD_API_URL, headers=headers, json=payload)
-                response.raise_for_status()
+                # response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
+                # response.raise_for_status()
 
-                chunks = response.json()
+                # chunks = response.json()
+                chunks = check_runpod_status(payload)
                 for chunk in chunks.get("output"):
                     if "content" in chunk:
                         content = chunk["content"]
@@ -202,11 +201,6 @@ if st.button("스크립트 추출"):
         if "youtu" not in url:
             st.warning("유효한 유튜브 URL을 입력하세요.")
         else:
-            headers = {
-                "Authorization": f"Bearer {RUNPOD_API_KEY}",
-                "Content-Type": "application/json",
-            }
-
             # get_title_hash 엔드포인트 호출
             payload = {
                 "input": {
@@ -215,41 +209,38 @@ if st.button("스크립트 추출"):
                     "params": {"url": url},
                 }
             }
-            response = requests.post(RUNPOD_API_URL, headers=headers, json=payload)
-            if response.status_code == 200:
-                data = response.json()
-                st.session_state.title = data.get("output", {}).get("title", "제목")
-                st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
-                st.session_state.video_id = (
-                    url.split("v=")[-1] if "v=" in url else url.split("/")[-1]
-                )
+            # response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
+            data = check_runpod_status(payload)
+            # if response.status_code == 200:
+            #     data = response.json()
+            st.session_state.title = data.get("output", {}).get("title", "제목")
+            st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
+            st.session_state.video_id = (
+                url.split("v=")[-1] if "v=" in url else url.split("/")[-1]
+            )
 
-                with st.spinner("요약 중입니다..."):
-                    # get_script_summary 엔드포인트 호출
-                    payload = {
-                        "input": {
-                            "endpoint": "/get_script_summary",
-                            "method": "GET",
-                            "headers": {"x-session-id": st.session_state.session_id},
-                            "params": {"url": url},
-                        }
+            with st.spinner("요약 중입니다..."):
+                # get_script_summary 엔드포인트 호출
+                payload = {
+                    "input": {
+                        "endpoint": "/get_script_summary",
+                        "method": "GET",
+                        "headers": {"x-session-id": st.session_state.session_id},
+                        "params": {"url": url},
                     }
+                }
 
-                    # 상태를 직접 확인하여 작업 완료 시까지 대기
-                    summary_response = check_runpod_status(
-                        RUNPOD_API_URL, headers, payload
-                    )
+                # 상태를 직접 확인하여 작업 완료 시까지 대기
+                summary_response = check_runpod_status(payload)
 
-                    if summary_response:
-                        summary_data = summary_response.get("output", {})
-                        st.session_state.summary = summary_data.get(
-                            "summary_result", ""
-                        )
-                        st.session_state.language = summary_data.get("language", "")
-                        st.session_state.transcript = summary_data.get("script", [])
+                if summary_response:
+                    summary_data = summary_response.get("output", {})
+                    st.session_state.summary = summary_data.get("summary_result", "")
+                    st.session_state.language = summary_data.get("language", "")
+                    st.session_state.transcript = summary_data.get("script", [])
 
-                    else:
-                        st.error("스크립트 요약에 실패했습니다.")
+                else:
+                    st.error("스크립트 요약에 실패했습니다.")
 
 # URL이 입력되었고, 데이터가 session_state에 저장된 경우 표시
 if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아웃 표시

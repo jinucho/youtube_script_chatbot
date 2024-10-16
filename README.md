@@ -12,11 +12,12 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 
 #### Docker 구성 및 Backend RUNPOD 배포
 1. 긴 영상의 경우 runpod serverless에서 IN_QUEUE, IN_PROGRESS를 보내는 경우가 있어,
-  이에 맞게 summary_script 호출 부분 수정 및 status 반복 체크하여 COMPLETED 일때 출력 및 호출 종료로 변경
+  이에 맞게 각 엔드포인트 호출 부분 수정 및 status 반복 체크하여 COMPLETED 일때 출력 및 호출 종료로 변경
 
 ### ToDo
 1. 불필요 라이브러리 제거
 2. local llm 붙여보기(vllm or ollama)
+3. FAISS, BM25 저장소 local 저장 및 불러오기 구현
 
 ----------------------------------------------------------------------------------------------------------------------------------------
 
