@@ -16,7 +16,7 @@ os.environ["OMP_NUM_THREADS"] = "1"  # OpenMP 스레드 수 제한
 multiprocessing.set_start_method("spawn", force=True)
 
 # 로그 설정
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.info)
 logger = logging.getLogger(__name__)
 
 
@@ -30,10 +30,10 @@ async def get_title_hash(url: str, youtube_service: YouTubeService):
     if not url or not isinstance(url, str):
         raise ValueError("Invalid URL format or missing URL")
 
-    logger.debug(f"Received URL in get_title_hash: {url}")
+    logger.info(f"Received URL in get_title_hash: {url}")
     try:
         title_and_hashtags = await youtube_service.get_title_and_hashtags(url)
-        logger.debug(f"Title and Hashtags for URL {url}: {title_and_hashtags}")
+        logger.info(f"Title and Hashtags for URL {url}: {title_and_hashtags}")
         return title_and_hashtags
     except Exception as e:
         logger.error(f"Error fetching title and hashtags for URL {url}: {e}")
@@ -50,19 +50,19 @@ async def get_script_summary(
     if not url or not isinstance(url, str):
         raise ValueError("Invalid URL format or missing URL")
 
-    logger.debug(f"Received URL in get_script_summary: {url}")
-    logger.debug(f"Session ID in get_script_summary: {session_id}")
+    logger.info(f"Received URL in get_script_summary: {url}")
+    logger.info(f"Session ID in get_script_summary: {session_id}")
     try:
         video_info = await youtube_service.get_video_info(url)
-        logger.debug(f"[Session {session_id}] Video info for URL {url}: {video_info}")
+        logger.info(f"[Session {session_id}] Video info for URL {url}: {video_info}")
 
         transcript = await whisper_service.transcribe(video_info["audio_url"])
-        logger.debug(
+        logger.info(
             f"[Session {session_id}] Transcript for video {video_info['audio_url']}: {transcript}"
         )
 
         summary = await langchain_service.summarize(transcript)
-        logger.debug(f"[Session {session_id}] Summary for transcript: {summary}")
+        logger.info(f"[Session {session_id}] Summary for transcript: {summary}")
 
         return {
             "summary_result": summary,

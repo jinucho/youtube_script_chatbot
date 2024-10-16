@@ -1,14 +1,14 @@
-# streamlit cloud app 배포 버전
-
 import json
 import os
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
-
-import requests
 import streamlit as st
+import requests
 
+from dotenv import load_dotenv
+
+load_dotenv()
 from mail import send_feedback_email
 
 # RunPod 정보
