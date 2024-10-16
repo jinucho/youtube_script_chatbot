@@ -2,7 +2,6 @@ import asyncio
 import logging
 import os
 import warnings
-from typing import List
 
 from config import settings
 from dotenv import load_dotenv
