@@ -215,9 +215,7 @@ if st.button("스크립트 추출"):
             #     data = response.json()
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
-            st.session_state.video_id = (
-                url.split("v=")[-1] if "v=" in url else url.split("/")[-1]
-            )
+            st.session_state.video_id = url.split("=")[-1]
 
             with st.spinner("요약 중입니다..."):
                 # get_script_summary 엔드포인트 호출

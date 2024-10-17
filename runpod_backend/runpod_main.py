@@ -9,17 +9,18 @@ from langchain_utils import LangChainService
 from whisper_transcription import WhisperTranscriptionService
 from youtube_utils import YouTubeService
 import warnings
-warnings.filterwarnings(action='ignore')
+
+# 로그 설정
+logging.basicConfig(level=logging.info)
+logger = logging.getLogger(__name__)
+
+warnings.filterwarnings(action="ignore")
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["OMP_NUM_THREADS"] = "1"  # OpenMP 스레드 수 제한
 
 # 멀티프로세싱 설정 조정
 multiprocessing.set_start_method("spawn", force=True)
-
-# 로그 설정
-logging.basicConfig(level=logging.info)
-logger = logging.getLogger(__name__)
 
 
 def concurrency_modifier(current_concurrency: int) -> int:
@@ -32,10 +33,10 @@ async def get_title_hash(url: str, youtube_service: YouTubeService):
     if not url or not isinstance(url, str):
         raise ValueError("Invalid URL format or missing URL")
 
-    logger.info(f"Received URL in get_title_hash: {url}")
+    print(f"Received URL in get_title_hash: {url}")
     try:
         title_and_hashtags = await youtube_service.get_title_and_hashtags(url)
-        logger.info(f"Title and Hashtags for URL {url}: {title_and_hashtags}")
+        print(f"Title and Hashtags for URL {url}: {title_and_hashtags}")
         return title_and_hashtags
     except Exception as e:
         logger.error(f"Error fetching title and hashtags for URL {url}: {e}")
@@ -52,19 +53,19 @@ async def get_script_summary(
     if not url or not isinstance(url, str):
         raise ValueError("Invalid URL format or missing URL")
 
-    logger.info(f"Received URL in get_script_summary: {url}")
-    logger.info(f"Session ID in get_script_summary: {session_id}")
+    print(f"Received URL in get_script_summary: {url}")
+    print(f"Session ID in get_script_summary: {session_id}")
     try:
         video_info = await youtube_service.get_video_info(url)
-        logger.info(f"[Session {session_id}] Video info for URL {url}: {video_info}")
+        print(f"[Session {session_id}] Video info for URL {url}: {video_info}")
 
         transcript = await whisper_service.transcribe(video_info["audio_url"])
-        logger.info(
+        print(
             f"[Session {session_id}] Transcript for video {video_info['audio_url']}: {transcript}"
         )
 
         summary = await langchain_service.summarize(transcript)
-        logger.info(f"[Session {session_id}] Summary for transcript: {summary}")
+        print(f"[Session {session_id}] Summary for transcript: {summary}")
 
         return {
             "summary_result": summary,
@@ -147,7 +148,7 @@ def runpod_handler(event):
                         youtube_service=youtube_service,
                         whisper_service=whisper_service,
                         langchain_service=langchain_service,
-                    )
+                    ).json()
                 else:
                     return {"error": "Invalid endpoint or method"}
 
@@ -167,6 +168,6 @@ if __name__ == "__main__":
         {
             "handler": runpod_handler,
             "concurrency_modifier": concurrency_modifier,
-            "return_aggregate_stream": True,
+            # "return_aggregate_stream": True,
         }
     )
