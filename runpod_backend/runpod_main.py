@@ -8,6 +8,8 @@ from fastapi.responses import JSONResponse
 from langchain_utils import LangChainService
 from whisper_transcription import WhisperTranscriptionService
 from youtube_utils import YouTubeService
+import warnings
+warnings.filterwarnings(action='ignore')
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["OMP_NUM_THREADS"] = "1"  # OpenMP 스레드 수 제한

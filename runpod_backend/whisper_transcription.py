@@ -10,7 +10,7 @@ class WhisperTranscriptionService:
         self.model = BatchedInferencePipeline(model=model)
 
     async def transcribe(self, audio_url: str):
-        segments, info = self.model.transcribe(audio_url, batch_size=16)
+        segments, info = self.model.transcribe(audio_url, batch_size=16,repetition_penalty=1.5,log_progress=True,beam_size=15)
         transcript = self._process_segments(segments)
         print("텍스트 추출 완료")
         return {"script": transcript, "language": info.language}
