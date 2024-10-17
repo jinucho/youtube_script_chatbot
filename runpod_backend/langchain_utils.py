@@ -54,25 +54,17 @@ class LangChainService:
         self.is_prepared = False
         self.SUMMARY_RESULT = ""
         self.documents = []
-        logger.debug(f"LangChainService initialized for session: {self.session_id}")
 
     async def summarize(self, transcript: dict):
         # 각 세션별 요약 내용 및 상태 초기화
         self.documents = [
             Document(page_content="\n".join([t["text"] for t in transcript["script"]]))
         ]
-        logger.debug(
-            f"Documents created for session {self.session_id}: {self.documents}"
-        )
-
         # Create stuff documents chain for summarization
         summary_chain = create_stuff_documents_chain(self.llm, self.summary_prompt)
 
         # Execute the summary chain
         self.SUMMARY_RESULT = await summary_chain.ainvoke({"context": self.documents})
-        logger.debug(
-            f"Summary result in summarize for session {self.session_id}: {self.SUMMARY_RESULT}"
-        )
 
         # Prepare the retriever after summarization
         await self.prepare_retriever()
@@ -81,13 +73,9 @@ class LangChainService:
 
     async def prepare_retriever(self):
         if self.is_prepared:
-            logger.debug(f"Retriever already prepared for session {self.session_id}")
             return
 
         # Add summary to the first document
-        logger.debug(
-            f"Adding summary to the first document for session {self.session_id}"
-        )
         try:
             for line in self.SUMMARY_RESULT.strip().split("\n"):
                 self.documents[0].page_content += "\n" + line
@@ -105,7 +93,6 @@ class LangChainService:
                 weights=[0.7, 0.3],
             )
             self.is_prepared = True
-            logger.debug(f"Retriever prepared for session {self.session_id}")
         except Exception as e:
             logger.error(
                 f"Error preparing retriever for session {self.session_id}: {e}"
@@ -113,9 +100,6 @@ class LangChainService:
             raise e
 
     async def stream_chat(self, prompt: str):
-        logger.debug(
-            f"Langchain Received prompt for session {self.session_id}: {prompt}"
-        )
         if not self.is_prepared:
             await self.prepare_retriever()
 
@@ -129,8 +113,7 @@ class LangChainService:
                 3. 만약, 주어진 문맥(context)에서 답을 찾을 수 없다면, 내부 지식(internal knowledge)을 사용하여 답변을 생성하세요.
                 4. 만약, 문맥에서 답을 찾을 수 없고 내부 지식으로도 답변할 수 없다면, `주어진 정보에서 질문에 대한 답변을 찾을 수 없습니다`라고 답하세요.
                 5. 내부 지식은 검토 후 답변하세요.
-
-                한글로 답변해 주세요. 단, 기술적인 용어나 이름은 번역하지 않고 그대로 사용해 주세요.
+                6. 한글로 답변해 주세요. 단, 기술적인 용어나 이름은 번역하지 않고 그대로 사용해 주세요.
 
                 #Question: 
                 {question} 
@@ -148,9 +131,6 @@ class LangChainService:
                 | StrOutputParser()
             )
             async for chunk in chain.astream(prompt):
-                logger.debug(
-                    f"Langchain Streaming for session {self.session_id}: {chunk}"
-                )
                 yield (
                     chunk
                     if isinstance(chunk, str)

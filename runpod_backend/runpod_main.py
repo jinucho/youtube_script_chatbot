@@ -59,13 +59,13 @@ async def get_script_summary(
         video_info = await youtube_service.get_video_info(url)
         print(f"[Session {session_id}] Video info for URL {url}: {video_info}")
 
-        transcript = await whisper_service.transcribe(video_info["audio_url"])
+        transcript = await whisper_service.transcribe(video_info["audio_url"][:10])
         print(
-            f"[Session {session_id}] Transcript for video {video_info['audio_url']}: {transcript}"
+            f"[Session {session_id}] Transcript for video {video_info['audio_url'][:10]}: {transcript.get('script')[:3]}"
         )
 
         summary = await langchain_service.summarize(transcript)
-        print(f"[Session {session_id}] Summary for transcript: {summary}")
+        print(f"[Session {session_id}] Summary for transcript: {summary[:10]}")
 
         return {
             "summary_result": summary,
@@ -133,7 +133,7 @@ def runpod_handler(event):
                         session_id=session_id,
                         langchain_service=langchain_service,
                     )
-                    return response  # 리스트 형태로 반환
+                    return response
 
             elif method == "GET":
                 if endpoint == "/get_title_hash":
@@ -148,7 +148,7 @@ def runpod_handler(event):
                         youtube_service=youtube_service,
                         whisper_service=whisper_service,
                         langchain_service=langchain_service,
-                    ).json()
+                    )
                 else:
                     return {"error": "Invalid endpoint or method"}
 
@@ -168,6 +168,6 @@ if __name__ == "__main__":
         {
             "handler": runpod_handler,
             "concurrency_modifier": concurrency_modifier,
-            # "return_aggregate_stream": True,
+            "return_aggregate_stream": True,
         }
     )

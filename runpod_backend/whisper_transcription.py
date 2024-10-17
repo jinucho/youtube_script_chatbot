@@ -16,8 +16,9 @@ class WhisperTranscriptionService:
             audio_url,
             batch_size=16,  # 배치 모델인 경우
             repetition_penalty=1.5,
-            log_progress=True,
-            beam_size=15,
+            beam_size=10,
+            patience=2,
+            no_repeat_ngram_size=4,
         )
 
         # 제너레이터를 리스트로 변환
