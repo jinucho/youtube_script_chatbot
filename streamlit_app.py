@@ -256,8 +256,9 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
 
         with st.expander("스크립트 보기", expanded=False):
             if st.session_state.transcript:
-                for item in st.session_state.transcript:
-                    st.write(f"{item['start']}초 - {item['end']}초: {item['text']}")
+                with st.container(height=400):
+                    for item in st.session_state.transcript:
+                        st.write(f"{item['start']}초 - {item['end']}초: {item['text']}")
 
     with col2:
         st.subheader("AI 채팅")
