@@ -96,17 +96,16 @@ async def rag_stream_chat(
     async def generate():
         try:
             async for chunk in langchain_service.stream_chat(prompt):
-                yield {"content": chunk}
-            yield {"content": "[DONE]"}
+                yield f"data: {json.dumps({'content': chunk})}\n\n"
+            yield "data: [DONE]\n\n"
         except Exception as e:
             logger.error(f"[Session {session_id}] Error during stream_chat: {e}")
-            yield {"error": str(e)}
-            yield {"content": "[DONE]"}
+            yield f"data: {'error': str(e)}\n\n"
+            yield "data: [DONE]\n\n"
 
-    return [chunk async for chunk in generate()]
+    return generate()
 
 
-# RunPod handler
 def runpod_handler(event):
     print(f"Received event: {event}")
 
@@ -128,33 +127,47 @@ def runpod_handler(event):
             if method == "POST":
                 if endpoint == "/rag_stream_chat":
                     prompt = request_data.get("prompt")
-                    response = await rag_stream_chat(
+                    async for chunk in rag_stream_chat(
                         prompt=prompt,
                         session_id=session_id,
                         langchain_service=langchain_service,
-                    )
-                    return response
-
+                    ):
+                        yield chunk
+                        await asyncio.sleep(0.1)
             elif method == "GET":
                 if endpoint == "/get_title_hash":
                     url = request_data.get("url")
-                    return await get_title_hash(url, youtube_service=youtube_service)
+                    # return await get_title_hash(url, youtube_service=youtube_service)
+                    title_hash = await get_title_hash(
+                        url, youtube_service=youtube_service
+                    )
+                    yield title_hash
 
                 elif endpoint == "/get_script_summary":
                     url = request_data.get("url")
-                    return await get_script_summary(
+                    # return await get_script_summary(
+                    #     url=url,
+                    #     session_id=session_id,
+                    #     youtube_service=youtube_service,
+                    #     whisper_service=whisper_service,
+                    #     langchain_service=langchain_service,
+                    # )
+                    summaray_result = await get_script_summary(
                         url=url,
                         session_id=session_id,
                         youtube_service=youtube_service,
                         whisper_service=whisper_service,
                         langchain_service=langchain_service,
                     )
+                    yield summaray_result
                 else:
-                    return {"error": "Invalid endpoint or method"}
+                    # return {"error": "Invalid endpoint or method"}
+                    yield "Invalid endpoint or method"
 
         except Exception as e:
             logger.error(f"Error during request processing: {e}")
-            return {"error": str(e)}
+            # return {"error": str(e)}
+            yield str(e)
 
     # 비동기 처리
     if asyncio.get_event_loop().is_running():

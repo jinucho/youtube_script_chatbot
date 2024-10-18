@@ -1,59 +1,17 @@
 import streamlit as st
-from streamlit_float import *
 
-st.set_page_config(layout="wide")
+id = "https://youtu.be/hrnVWt_x-LQ?si=KIgIMp_yqnGCpMMy".split("=")[-1]
+st.write("video_id", id)
 
-float_init(theme=True, include_unstable_primary=False)
-
-
-def chat_content():
-    user_input = st.session_state.content
-    bot_response = f"네, {user_input}"
-
-    st.session_state["contents"].append({"role": "user", "content": user_input})
-    st.session_state["contents"].append({"role": "bot", "content": bot_response})
-    st.session_state.content = ""  # Clear the input after sending
+# st.markdown(
+#     f'<iframe width="100%" height="600" src="https://www.youtube.com/embed/{id}" '
+#     f'frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" '
+#     f"allowfullscreen></iframe>",
+#     unsafe_allow_html=True,
+# )
 
 
-if "contents" not in st.session_state:
-    st.session_state["contents"] = []
-
-# Main content area
-main_container = st.container()
-
-# Fixed input area at the bottom
-input_container = st.container()
-
-with main_container:
-    for message in st.session_state.contents:
-        with st.chat_message(
-            name=message["role"], avatar="🤖" if message["role"] == "bot" else None
-        ):
-            st.write(message["content"])
-
-    # Add some space to prevent overlap with input field
-    st.markdown("<br>" * 3, unsafe_allow_html=True)
-
-with input_container:
-    st.chat_input(key="content", on_submit=chat_content)
-
-# CSS to fix the input container at the bottom
 st.markdown(
-    """
-    <style>
-    .stApp {
-        margin-bottom: 80px;
-    }
-    [data-testid="stChatInput"] {
-        position: fixed;
-        bottom: 0;
-        background-color: white;
-        z-index: 1000;
-        padding: 1rem;
-        left: 0;
-        right: 0;
-    }
-    </style>
-    """,
+    """<iframe width="560" height="315" src="https://www.youtube.com/embed/HP7WYu_iigM?si=c-t9osWU9pnVHt60" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>""",
     unsafe_allow_html=True,
 )

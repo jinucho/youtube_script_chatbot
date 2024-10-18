@@ -136,7 +136,7 @@ def process_input():
         user_message = f"{st.session_state.chat_input} ({current_time})"
         st.session_state.messages.append({"role": "user", "content": user_message})
 
-        # 봇 응답 생성 및 추가
+        # 봇 응답 생성 및 추가 (스트리밍)
         with st.spinner("AI가 응답을 생성 중입니다..."):
             payload = {
                 "input": {
@@ -146,40 +146,89 @@ def process_input():
                     "params": {"prompt": st.session_state.chat_input},
                 }
             }
+            with requests.post(
+                RUNPOD_API_URL, headers=HEADERS, json=payload, stream=True
+            ) as response:
+                bot_message = ""
+                for chunk in response.iter_lines(decode_unicode=True):
+                    if chunk:
+                        chunk_data = chunk.strip()
+                        if chunk_data.startswith("data: "):
+                            chunk_content = chunk_data[6:]
+                            if chunk_content == "[DONE]":
+                                break
+                            try:
+                                content = json.loads(chunk_content)
+                                if "content" in content:
+                                    bot_message += content["content"]
+                                    update_chat_display(bot_message + "▌")
+                                elif "error" in content:
+                                    st.error(f"Error: {content['error']}")
+                                    break
+                            except json.JSONDecodeError:
+                                st.error(f"Invalid JSON: {chunk_content}")
+                                break
 
-            bot_message = ""
-            try:
-                # response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
-                # response.raise_for_status()
-
-                # chunks = response.json()
-                chunks = check_runpod_status(payload)
-                for chunk in chunks.get("output"):
-                    if "content" in chunk:
-                        content = chunk["content"]
-                        if content == "[DONE]":
-                            break
-                        bot_message += content
-                        update_chat_display(bot_message + "▌")
-                        time.sleep(0.05)
-
-                    elif "error" in chunk:
-                        st.error(f"Error: {chunk['error']}")
-                        break
-            except requests.RequestException as e:
-                st.error(f"Request failed: {str(e)}")
-            except json.JSONDecodeError:
-                st.error("Failed to decode response")
-
-            # 최종 메시지 저장
-            if bot_message:
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": f"{bot_message} ({current_time})"}
-                )
+        # 최종 메시지 저장
+        st.session_state.messages.append(
+            {"role": "assistant", "content": f"{bot_message} ({current_time})"}
+        )
 
         st.session_state.last_input = st.session_state.chat_input
         st.session_state.chat_input = ""
         update_chat_display()
+
+
+# def process_input():
+#     if (
+#         st.session_state.chat_input
+#         and st.session_state.chat_input != st.session_state.get("last_input", "")
+#     ):
+#         current_time = datetime.now(kst).strftime("%H:%M")
+#         user_message = f"{st.session_state.chat_input} ({current_time})"
+#         st.session_state.messages.append({"role": "user", "content": user_message})
+
+#         # 봇 응답 생성 및 추가
+#         with st.spinner("AI가 응답을 생성 중입니다..."):
+#             payload = {
+#                 "input": {
+#                     "endpoint": "/rag_stream_chat",
+#                     "method": "POST",
+#                     "headers": {"x-session-id": st.session_state.session_id},
+#                     "params": {"prompt": st.session_state.chat_input},
+#                 }
+#             }
+
+#             bot_message = ""
+#             try:
+#                 chunks = check_runpod_status(payload)
+#                 st.write(chunks)
+#                 for chunk in chunks.get("output"):
+#                     if "content" in chunk:
+#                         content = chunk["content"]
+#                         if content == "[DONE]":
+#                             break
+#                         bot_message += content
+#                         update_chat_display(bot_message + "▌")
+#                         time.sleep(0.05)
+
+#                     elif "error" in chunk:
+#                         st.error(f"Error: {chunk['error']}")
+#                         break
+#             except requests.RequestException as e:
+#                 st.error(f"Request failed: {str(e)}")
+#             except json.JSONDecodeError:
+#                 st.error("Failed to decode response")
+
+#             # 최종 메시지 저장
+#             if bot_message:
+#                 st.session_state.messages.append(
+#                     {"role": "assistant", "content": f"{bot_message} ({current_time})"}
+#                 )
+
+#         st.session_state.last_input = st.session_state.chat_input
+#         st.session_state.chat_input = ""
+#         update_chat_display()
 
 
 def update_chat_display(current_bot_message=None):
@@ -216,7 +265,7 @@ if st.button("스크립트 추출"):
             #     data = response.json()
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
-            st.session_state.video_id = url.split("=")[-1]
+            st.session_state.video_id = url.split("/")[-1]
 
             with st.spinner("요약 중입니다..."):
                 # get_script_summary 엔드포인트 호출
@@ -231,7 +280,7 @@ if st.button("스크립트 추출"):
 
                 # 상태를 직접 확인하여 작업 완료 시까지 대기
                 summary_response = check_runpod_status(payload)
-                st.write(f"스크립트 요약 완료: {summary_response}")
+
                 if summary_response:
                     summary_data = summary_response.get("output", {})
                     st.session_state.summary = summary_data.get("summary_result", "")

@@ -14,8 +14,10 @@ RUN apt-get update && \
     libatlas-base-dev \
     g++ \
     git \
-    curl && \
+    curl \
+    ffmpeg && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
+
 
 
 # Python 패키지 의존성 파일 복사 및 설치
@@ -25,6 +27,8 @@ RUN pip3 install --no-cache-dir -r requirements.txt
 
 # whisper 모델 다운로드
 RUN python3 -c "from faster_whisper import WhisperModel; model=WhisperModel('large-v3')"
+
+RUN mkdir -p /app/downloads && chmod -R 755 /app/downloads
 
 # 애플리케이션 코드 복사
 COPY . .

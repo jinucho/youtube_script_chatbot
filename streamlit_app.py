@@ -10,6 +10,8 @@ import streamlit as st
 
 from mail import send_feedback_email
 
+from mail import send_feedback_email
+
 # RunPod 정보
 RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
 RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
@@ -148,10 +150,6 @@ def process_input():
 
             bot_message = ""
             try:
-                # response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
-                # response.raise_for_status()
-
-                # chunks = response.json()
                 chunks = check_runpod_status(payload)
                 for chunk in chunks.get("output"):
                     if "content" in chunk:
@@ -215,7 +213,7 @@ if st.button("스크립트 추출"):
             #     data = response.json()
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
-            st.session_state.video_id = url.split("=")[-1]
+            st.session_state.video_id = url.split("/")[-1]
 
             with st.spinner("요약 중입니다..."):
                 # get_script_summary 엔드포인트 호출
