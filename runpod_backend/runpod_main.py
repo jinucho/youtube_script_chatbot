@@ -42,6 +42,46 @@ async def get_title_hash(url: str, youtube_service: YouTubeService):
         raise ValueError(f"Failed to fetch title and hashtags: {e}")
 
 
+# async def get_script_summary(
+#     url: str,
+#     session_id: str,
+#     youtube_service: YouTubeService,
+#     whisper_service: WhisperTranscriptionService,
+#     langchain_service: LangChainService,
+# ):
+#     if not url or not isinstance(url, str):
+#         raise ValueError("Invalid URL format or missing URL")
+
+#     print(f"Received URL in get_script_summary: {url}")
+#     print(f"Session ID in get_script_summary: {session_id}")
+#     try:
+#         video_info = await youtube_service.get_video_info(url)
+#         print(f"[Session {session_id}] Video info for URL {url}: {video_info}")
+
+#         transcript = await whisper_service.transcribe(video_info["audio_url"])
+#         print(
+#             f"[Session {session_id}] Transcript for video {video_info['audio_url'][:10]}: {transcript.get('script')[:3]}"
+#         )
+
+#         summary = await langchain_service.summarize(transcript)
+#         print(f"[Session {session_id}] Summary for transcript: {summary[:10]}")
+
+
+#         return {
+#             "summary_result": summary,
+#             "language": transcript["language"],
+#             "script": transcript["script"],
+#         }
+#     except KeyError as e:
+#         logger.error(
+#             f"[Session {session_id}] KeyError: Missing expected key in response data - {e}"
+#         )
+#         raise ValueError(f"Invalid data structure: {e}")
+#     except Exception as e:
+#         logger.error(
+#             f"[Session {session_id}] Unhandled exception in get_script_summary: {e}"
+#         )
+#         raise ValueError(str(e))
 async def get_script_summary(
     url: str,
     session_id: str,
@@ -55,22 +95,30 @@ async def get_script_summary(
     print(f"Received URL in get_script_summary: {url}")
     print(f"Session ID in get_script_summary: {session_id}")
     try:
-        video_info = await youtube_service.get_video_info(url)
-        print(f"[Session {session_id}] Video info for URL {url}: {video_info}")
+        # 1. YouTube에서 오디오 파일 다운로드
+        audio_file_path = await youtube_service.get_audio_file(url)
+        if not audio_file_path:
+            raise ValueError("Failed to download audio file from YouTube")
 
-        transcript = await whisper_service.transcribe(video_info["audio_url"])
+        print(f"[Session {session_id}] Audio file downloaded at: {audio_file_path}")
+
+        # 2. Whisper 서비스로 오디오 파일 변환
+        transcript = await whisper_service.transcribe(audio_file_path)
         print(
-            f"[Session {session_id}] Transcript for video {video_info['audio_url'][:10]}: {transcript.get('script')[:3]}"
+            f"[Session {session_id}] Transcript for audio file {audio_file_path[:10]}: {transcript.get('script')[:3]}"
         )
 
+        # 3. LangChain으로 요약 생성
         summary = await langchain_service.summarize(transcript)
         print(f"[Session {session_id}] Summary for transcript: {summary[:10]}")
 
+        # 4. 최종 결과 반환
         return {
             "summary_result": summary,
             "language": transcript["language"],
             "script": transcript["script"],
         }
+
     except KeyError as e:
         logger.error(
             f"[Session {session_id}] KeyError: Missing expected key in response data - {e}"
@@ -81,6 +129,11 @@ async def get_script_summary(
             f"[Session {session_id}] Unhandled exception in get_script_summary: {e}"
         )
         raise ValueError(str(e))
+    finally:
+        # 5. 오디오 파일 삭제 (필요 시)
+        if audio_file_path and os.path.exists(audio_file_path):
+            os.remove(audio_file_path)
+            print(f"[Session {session_id}] Deleted audio file: {audio_file_path}")
 
 
 async def rag_stream_chat(
