@@ -1,14 +1,10 @@
-# streamlit cloud app 배포 버전
 import json
 import os
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
-
-import requests
 import streamlit as st
-
-from mail import send_feedback_email
+import requests
 
 from mail import send_feedback_email
 
@@ -151,6 +147,7 @@ def process_input():
             bot_message = ""
             try:
                 chunks = check_runpod_status(payload)
+                st.write(chunks)
                 for chunk in chunks.get("output"):
                     if "content" in chunk:
                         content = chunk["content"]
