@@ -45,7 +45,7 @@ class LangChainService:
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=100, chunk_overlap=10
         )
-        self.summary_prompt = hub.pull("teddynote/summary-stuff-documents-korean")
+        self.summary_prompt = settings.SUMMARY_PROMPT_TEMPLATE
         self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7, streaming=True)
         self.memory = ConversationBufferMemory(
             memory_key="chat_history", return_messages=True

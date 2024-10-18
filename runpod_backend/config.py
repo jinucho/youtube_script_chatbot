@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     LANGCHAIN_ENDPOINT: str = os.getenv("LANGCHAIN_ENDPOINT")
     LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY")
     LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT")
+    
+    SUMMARY_PROMPT_TEMPLATE: str = 'Please summarize the sentence according to the following REQUEST.\nREQUEST:\n1. Summarize the main points in bullet points in KOREAN.\n2. Each summarized sentence must start with an emoji that fits the meaning of the each sentence.\n3. Use various emojis to make the summary more interesting.\n4. Translate the summary into KOREAN if it is written in ENGLISH.\n5. DO NOT translate any technical terms.\n6. DO NOT include any unnecessary information.\n7. Please refer to each summary and indicate the key topic.\n8. If the original text is in English, we have already provided a summary translated into Korean, so please do not provide a separate translation.\n\nCONTEXT:\n{context}\n\nSUMMARY:"\n'
 
     class Config:
         env_file = ".env"

@@ -231,7 +231,7 @@ if st.button("스크립트 추출"):
 
                 # 상태를 직접 확인하여 작업 완료 시까지 대기
                 summary_response = check_runpod_status(payload)
-
+                st.write(f"스크립트 요약 완료: {summary_response}")
                 if summary_response:
                     summary_data = summary_response.get("output", {})
                     st.session_state.summary = summary_data.get("summary_result", "")

@@ -4,7 +4,6 @@ import multiprocessing
 import os
 
 import runpod
-from fastapi.responses import JSONResponse
 from langchain_utils import LangChainService
 from whisper_transcription import WhisperTranscriptionService
 from youtube_utils import YouTubeService
@@ -59,7 +58,7 @@ async def get_script_summary(
         video_info = await youtube_service.get_video_info(url)
         print(f"[Session {session_id}] Video info for URL {url}: {video_info}")
 
-        transcript = await whisper_service.transcribe(video_info["audio_url"][:10])
+        transcript = await whisper_service.transcribe(video_info["audio_url"])
         print(
             f"[Session {session_id}] Transcript for video {video_info['audio_url'][:10]}: {transcript.get('script')[:3]}"
         )
@@ -154,7 +153,7 @@ def runpod_handler(event):
 
         except Exception as e:
             logger.error(f"Error during request processing: {e}")
-            return JSONResponse(content={"error": str(e)}, status_code=500)
+            return {"error": str(e)}
 
     # 비동기 처리
     if asyncio.get_event_loop().is_running():
