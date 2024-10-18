@@ -42,8 +42,8 @@ class YouTubeService:
             os.makedirs(output_dir)
 
         # 파일명을 YouTube 제목 기반으로 설정
-        file_path = os.path.join(output_dir, f"{yt.title}.mp4")
-        audio_stream.download(output_path=output_dir, filename=f"{yt.title}.mp4")
+        file_path = os.path.join(output_dir, f"{yt.title}.mp3")
+        audio_stream.download(output_path=output_dir, filename=f"{yt.title}.mp3")
 
         print(f"오디오 파일 다운로드 완료: {file_path}")
         return file_path
