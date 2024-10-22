@@ -5,10 +5,10 @@ import uuid
 from datetime import datetime, timedelta, timezone
 import streamlit as st
 import requests
-
 from dotenv import load_dotenv
 
 load_dotenv()
+
 from mail import send_feedback_email
 
 # RunPod 정보
@@ -28,7 +28,7 @@ st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
 st.title("유튜브 요약 및 AI 채팅")
 
 st.write("참고사항 : 첫 시작 시 시간이 소요 됩니다.")
-st.write("주의사항 : 30초동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
+st.write("주의사항 : 1분동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
 
 # 초기 상태 설정
 if "messages" not in st.session_state:
@@ -48,48 +48,6 @@ if "transcript" not in st.session_state:
 if "session_id" not in st.session_state:
     # 세션 ID 생성 (각 사용자마다 고유한 세션 ID를 생성)
     st.session_state.session_id = str(uuid.uuid4())
-
-# CSS 스타일 정의
-st.markdown(
-    """
-<style>
-.chat-container {
-    height: 800px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-    padding: 10px;
-    margin-bottom: 10px;
-}
-.user-message {
-    background-color: #DCF8C6;
-    color: black;
-    border-radius: 10px;
-    padding: 8px;
-    margin: 5px;
-    max-width: 70%;
-    float: right;
-    clear: both;
-}
-.bot-message {
-    background-color: #17EAE4;
-    color: black;
-    border-radius: 10px;
-    padding: 8px;
-    margin: 5px;
-    max-width: 70%;
-    float: left;
-    clear: both;
-}
-</style>
-""",
-    unsafe_allow_html=True,
-)
-
-
-# 채팅 메시지 표시 함수
-def display_message(role, content):
-    message_class = "user-message" if role == "user" else "bot-message"
-    return f'<div class="{message_class}">{content}</div>'
 
 
 def check_runpod_status(payload, interval=5):
@@ -122,73 +80,8 @@ def check_runpod_status(payload, interval=5):
                 time.sleep(interval)  # 지정된 간격 후 다시 상태 확인
         elif result.get("status") == "COMPLETED":
             return result
-
         else:
             return response.json()
-
-
-def process_input():
-    if (
-        st.session_state.chat_input
-        and st.session_state.chat_input != st.session_state.get("last_input", "")
-    ):
-        current_time = datetime.now(kst).strftime("%H:%M")
-        user_message = f"{st.session_state.chat_input} ({current_time})"
-        st.session_state.messages.append({"role": "user", "content": user_message})
-
-        # 봇 응답 생성 및 추가
-        with st.spinner("AI가 응답을 생성 중입니다..."):
-            payload = {
-                "input": {
-                    "endpoint": "/rag_stream_chat",
-                    "method": "POST",
-                    "headers": {"x-session-id": st.session_state.session_id},
-                    "params": {"prompt": st.session_state.chat_input},
-                }
-            }
-
-            bot_message = ""
-            try:
-                response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
-                chunks = response.json()
-                # chunks = check_runpod_status(payload)
-                for chunk in chunks.get("output"):
-                    if "content" in chunk:
-                        content = chunk["content"]
-                        if content == "[DONE]":
-                            break
-                        bot_message += content
-                        update_chat_display(bot_message + "▌")
-                        time.sleep(0.05)
-
-                    elif "error" in chunk:
-                        st.error(f"Error: {chunk['error']}")
-                        break
-            except requests.RequestException as e:
-                st.error(f"Request failed: {str(e)}")
-            except json.JSONDecodeError:
-                st.error("Failed to decode response")
-
-            # 최종 메시지 저장
-            if bot_message:
-                st.session_state.messages.append(
-                    {"role": "assistant", "content": f"{bot_message} ({current_time})"}
-                )
-
-        st.session_state.last_input = st.session_state.chat_input
-        st.session_state.chat_input = ""
-        update_chat_display()
-
-
-def update_chat_display(current_bot_message=None):
-    chat_content = ""
-    for message in st.session_state.messages:
-        chat_content += display_message(message["role"], message["content"])
-    if current_bot_message:
-        chat_content += display_message("assistant", current_bot_message)
-    chat_container.markdown(
-        f'<div class="chat-container">{chat_content}</div>', unsafe_allow_html=True
-    )
 
 
 # 유튜브 URL 입력 받기
@@ -208,10 +101,7 @@ if st.button("스크립트 추출"):
                     "params": {"url": url},
                 }
             }
-            # response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
             data = check_runpod_status(payload)
-            # if response.status_code == 200:
-            #     data = response.json()
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
             st.session_state.video_id = url.split("/")[-1]
@@ -235,7 +125,6 @@ if st.button("스크립트 추출"):
                     st.session_state.summary = summary_data.get("summary_result", "")
                     st.session_state.language = summary_data.get("language", "")
                     st.session_state.transcript = summary_data.get("script", [])
-
                 else:
                     st.error("스크립트 요약에 실패했습니다.")
 
@@ -267,12 +156,75 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
     with col2:
         st.subheader("AI 채팅")
 
-        chat_container = st.empty()
-        update_chat_display()
+        # 메시지를 표시할 고정 컨테이너
+        messages_container = st.container(height=800)
 
-        chat_input = st.text_input(
-            "메시지를 입력하세요", key="chat_input", on_change=process_input
-        )
+        # 채팅 입력창을 위한 컨테이너 (가장 하단에 배치)
+        input_container = st.container()
+
+        # 채팅 입력 처리 (먼저 처리하되 UI는 하단에 표시)
+        with input_container:
+            prompt = st.chat_input("메시지를 입력하세요")
+
+        # 메시지 표시 (채팅 이력)
+        with messages_container:
+            for message in st.session_state.messages:
+                with st.chat_message(message["role"]):
+                    st.write(message["content"])
+
+            # 새 메시지 처리
+            if prompt:
+                current_time = datetime.now(kst).strftime("%H:%M")
+
+                # 사용자 메시지 추가 및 표시
+                user_message = f"{prompt} ({current_time})"
+                with st.chat_message("user"):
+                    st.write(user_message)
+                st.session_state.messages.append(
+                    {"role": "user", "content": user_message}
+                )
+
+                # 봇 응답 생성
+                with st.chat_message("assistant"):
+                    message_placeholder = st.empty()
+                    bot_message = ""
+
+                    # RunPod API 호출
+                    payload = {
+                        "input": {
+                            "endpoint": "/rag_stream_chat",
+                            "method": "POST",
+                            "headers": {"x-session-id": st.session_state.session_id},
+                            "params": {"prompt": prompt},
+                        }
+                    }
+
+                    try:
+                        chunks = check_runpod_status(payload)
+                        for chunk in chunks.get("output"):
+                            if "content" in chunk:
+                                content = chunk["content"]
+                                if content == "[DONE]":
+                                    break
+                                bot_message += content
+                                message_placeholder.write(f"{bot_message}▌")
+                                time.sleep(0.05)
+
+                            elif "error" in chunk:
+                                st.error(f"Error: {chunk['error']}")
+                                break
+
+                        # 최종 봇 메시지 저장
+                        final_message = f"{bot_message} ({current_time})"
+                        message_placeholder.write(final_message)
+                        st.session_state.messages.append(
+                            {"role": "assistant", "content": final_message}
+                        )
+
+                    except requests.RequestException as e:
+                        st.error(f"Request failed: {str(e)}")
+                    except json.JSONDecodeError:
+                        st.error("Failed to decode response")
 
 st.markdown("---")
 st.header("피드백을 보내주세요.")
@@ -285,49 +237,3 @@ if st.button("전송"):
             st.error("전송 중 오류가 발생했습니다. 나중에 다시 시도해 주세요.")
     else:
         st.warning("피드백을 입력해 주세요.")
-
-
-# 스크롤 함수 호출 (필요한 경우)
-st.markdown("<script>scrollToBottom();</script>", unsafe_allow_html=True)
-
-# 'Enter' 키 처리 및 자동 스크롤을 위한 JavaScript
-st.markdown(
-    """
-<script>
-const inputElement = window.parent.document.querySelector('.stTextInput input');
-inputElement.addEventListener('keydown', function(e) {
-    if (e.key === 'Enter') {
-        setTimeout(() => {
-            const submitButton = window.parent.document.querySelector('button[kind="primaryFormSubmit"]');
-            if (submitButton) {
-                submitButton.click();
-            }
-        }, 10);
-    }
-});
-
-function scrollChatToBottom() {
-    const chatContainer = window.parent.document.querySelector('.chat-container');
-    if (chatContainer) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
-    }
-}
-
-// 새 메시지가 추가될 때마다 스크롤
-function observeChatChanges() {
-    const chatContainer = window.parent.document.querySelector('.chat-container');
-    if (chatContainer) {
-        const observer = new MutationObserver(scrollChatToBottom);
-        observer.observe(chatContainer, { childList: true, subtree: true });
-    }
-}
-
-// 페이지 로드 시 초기 설정
-document.addEventListener('DOMContentLoaded', function() {
-    scrollChatToBottom();
-    observeChatChanges();
-});
-</script>
-""",
-    unsafe_allow_html=True,
-)
