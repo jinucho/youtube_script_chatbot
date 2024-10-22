@@ -28,7 +28,7 @@ st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
 st.title("유튜브 요약 및 AI 채팅")
 
 st.write("참고사항 : 첫 시작 시 시간이 소요 됩니다.")
-st.write("주의사항 : 1분동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
+st.write("주의사항 : 1분 동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
 
 # 초기 상태 설정
 if "messages" not in st.session_state:
