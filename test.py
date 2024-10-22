@@ -1,62 +1,39 @@
+import runpod
 import asyncio
+import json
 import logging
 import os
-import warnings
-
-import runpod
+import multiprocessing
 from langchain_utils import LangChainService
 from whisper_transcription import WhisperTranscriptionService
 from youtube_utils import YouTubeService
-
-# 로그 설정
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
-warnings.filterwarnings(action="ignore")
+from fastapi.responses import StreamingResponse, JSONResponse
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["OMP_NUM_THREADS"] = "1"  # OpenMP 스레드 수 제한
 
-# 전역 인스턴스 저장
-youtube_service_instance = None
-whisper_service_instance = None
-langchain_service_cache = {}
+# 멀티프로세싱 설정 조정
+multiprocessing.set_start_method("spawn", force=True)
+
+# 로그 설정
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
-# 서비스 인스턴스를 비동기적으로 관리하는 함수
-async def get_service_instances(session_id=None):
-    global youtube_service_instance, whisper_service_instance
-
-    # YouTubeService 인스턴스 생성 (싱글톤)
-    if youtube_service_instance is None:
-        youtube_service_instance = YouTubeService()
-
-    # WhisperTranscriptionService 인스턴스 생성 (싱글톤)
-    if whisper_service_instance is None:
-        whisper_service_instance = WhisperTranscriptionService()
-
-    # LangChainService 인스턴스 생성 (세션별)
-    if session_id:
-        if session_id not in langchain_service_cache:
-            langchain_service_cache[session_id] = LangChainService.get_instance(
-                session_id
-            )
-        langchain_service = langchain_service_cache[session_id]
-    else:
-        langchain_service = None
-
-    return youtube_service_instance, whisper_service_instance, langchain_service
+def concurrency_modifier(current_concurrency: int) -> int:
+    # 최대 동시 실행 수가 5일 경우, 현재 동시 실행 수에 따라 조정
+    return max(0, 5 - current_concurrency)
 
 
-# 비동기 작업 함수들
+# 비동기 함수 정의
 async def get_title_hash(url: str, youtube_service: YouTubeService):
     if not url or not isinstance(url, str):
         raise ValueError("Invalid URL format or missing URL")
 
-    logger.info(f"Received URL in get_title_hash: {url}")
+    logger.debug(f"Received URL in get_title_hash: {url}")
     try:
         title_and_hashtags = await youtube_service.get_title_and_hashtags(url)
-        logger.info(f"Title and Hashtags for URL {url}: {title_and_hashtags}")
+        logger.debug(f"Title and Hashtags for URL {url}: {title_and_hashtags}")
         return title_and_hashtags
     except Exception as e:
         logger.error(f"Error fetching title and hashtags for URL {url}: {e}")
@@ -73,19 +50,19 @@ async def get_script_summary(
     if not url or not isinstance(url, str):
         raise ValueError("Invalid URL format or missing URL")
 
-    logger.info(f"Received URL in get_script_summary: {url}")
-    logger.info(f"Session ID in get_script_summary: {session_id}")
+    logger.debug(f"Received URL in get_script_summary: {url}")
+    logger.debug(f"Session ID in get_script_summary: {session_id}")
     try:
         video_info = await youtube_service.get_video_info(url)
-        logger.info(f"[Session {session_id}] Video info for URL {url}: {video_info}")
+        logger.debug(f"[Session {session_id}] Video info for URL {url}: {video_info}")
 
         transcript = await whisper_service.transcribe(video_info["audio_url"])
-        logger.info(
-            f"[Session {session_id}] Transcript for video {video_info['audio_url'][:10]}: {transcript.get('script')[:3]}"
+        logger.debug(
+            f"[Session {session_id}] Transcript for video {video_info['audio_url']}: {transcript}"
         )
 
         summary = await langchain_service.summarize(transcript)
-        logger.info(f"[Session {session_id}] Summary for transcript: {summary[:10]}")
+        logger.debug(f"[Session {session_id}] Summary for transcript: {summary}")
 
         return {
             "summary_result": summary,
@@ -102,6 +79,48 @@ async def get_script_summary(
             f"[Session {session_id}] Unhandled exception in get_script_summary: {e}"
         )
         raise ValueError(str(e))
+
+
+# async def rag_stream_chat(
+#     prompt: str, session_id: str, langchain_service: LangChainService
+# ):
+#     if not session_id:
+#         raise ValueError("Session ID is required")
+
+#     if not prompt:
+#         raise ValueError("Prompt is required")
+
+#     async def generate():
+#         try:
+#             async for chunk in langchain_service.stream_chat(prompt):
+#                 yield f"data: {json.dumps({'content': chunk})}\n\n"
+#             yield "data: [DONE]\n\n"
+#         except Exception as e:
+#             logger.error(f"[Session {session_id}] Error during stream_chat: {e}")
+#             yield f"data: {json.dumps({'error': str(e)})}\n\n"
+#             yield "data: [DONE]\n\n"
+
+#     return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+# async def rag_stream_chat(
+#     prompt: str, session_id: str, langchain_service: LangChainService
+# ):
+#     if not session_id:
+#         raise ValueError("Session ID is required")
+
+#     if not prompt:
+#         raise ValueError("Prompt is required")
+
+#     try:
+#         async for chunk in langchain_service.stream_chat(prompt):
+#             logger.debug(f"[Session {session_id}] Streaming chunk: {chunk}")
+#             yield f"content: {chunk}"  # 데이터를 바로 스트리밍
+#         yield "content: [DONE]"  # 스트리밍 종료 신호
+#     except Exception as e:
+#         logger.error(f"[Session {session_id}] Error during stream_chat: {e}")
+#         yield {"error": str(e)}  # 에러가 발생하면 에러 메시지 반환
+#         yield {"content": "[DONE]"}  # 스트리밍 종료 신호
 
 
 async def rag_stream_chat(
@@ -126,9 +145,9 @@ async def rag_stream_chat(
     return [chunk async for chunk in generate()]
 
 
-# RunPod handler 비동기 방식으로 처리
+# RunPod handler
 def runpod_handler(event):
-    logger.info(f"Received event: {event}")
+    print(f"Received event: {event}")
 
     async def async_handler():
         endpoint = event["input"].get("endpoint", "/")
@@ -137,12 +156,23 @@ def runpod_handler(event):
         headers = event["input"].get("headers", {})
         session_id = headers.get("x-session-id")
 
-        # 세션별 인스턴스 관리 (비동기 방식)
-        youtube_service, whisper_service, langchain_service = (
-            await get_service_instances(session_id)
+        # 각 서비스 인스턴스 명시적으로 생성
+        youtube_service = YouTubeService()
+        whisper_service = WhisperTranscriptionService()
+        langchain_service = (
+            LangChainService.get_instance(session_id) if session_id else None
         )
 
         try:
+            # if method == "POST":
+            #     if endpoint == "/rag_stream_chat":
+            #         prompt = request_data.get("prompt")
+            #         # 스트리밍 데이터를 처리
+            #         return rag_stream_chat(
+            #             prompt=prompt,
+            #             session_id=session_id,
+            #             langchain_service=langchain_service,
+            #         )
             if method == "POST":
                 if endpoint == "/rag_stream_chat":
                     prompt = request_data.get("prompt")
@@ -151,7 +181,7 @@ def runpod_handler(event):
                         session_id=session_id,
                         langchain_service=langchain_service,
                     )
-                    return response
+                    return response  # 리스트 형태로 반환
 
             elif method == "GET":
                 if endpoint == "/get_title_hash":
@@ -172,7 +202,7 @@ def runpod_handler(event):
 
         except Exception as e:
             logger.error(f"Error during request processing: {e}")
-            return {"error": str(e)}
+            return JSONResponse(content={"error": str(e)}, status_code=500)
 
     # 비동기 처리
     if asyncio.get_event_loop().is_running():
@@ -185,6 +215,7 @@ if __name__ == "__main__":
     runpod.serverless.start(
         {
             "handler": runpod_handler,
+            "concurrency_modifier": concurrency_modifier,
             "return_aggregate_stream": True,
         }
     )

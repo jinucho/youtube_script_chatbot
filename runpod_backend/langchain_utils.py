@@ -82,7 +82,7 @@ class LangChainService:
                 self.documents[0].page_content += "\n" + line
 
             split_docs = self.text_splitter.split_documents(self.documents)
-
+            print(f"Split_docs = {split_docs[0]}")
             vec_store = FAISS.from_documents(split_docs, self.embeddings)
             bm25_retriever = BM25Retriever.from_documents(split_docs)
             bm25_retriever.k = 10

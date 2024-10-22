@@ -149,8 +149,9 @@ def process_input():
 
             bot_message = ""
             try:
-                chunks = check_runpod_status(payload)
-                st.write(chunks)
+                response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
+                chunks = response.json()
+                # chunks = check_runpod_status(payload)
                 for chunk in chunks.get("output"):
                     if "content" in chunk:
                         content = chunk["content"]

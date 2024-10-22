@@ -1,6 +1,6 @@
 {
     "input": {
-        "endpoint": "/rag_stream_chat",
+        "endpoint": "/get_script_summary",
         "method": "GET",
         "headers": {"x-session-id": "test123"},
         "params": {"url": "https://youtu.be/KjlTeQu6tC8?si=yGyVTQS6j80k8Gtp"}

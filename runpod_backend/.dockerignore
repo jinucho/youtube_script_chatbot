@@ -1,5 +1,3 @@
-.env
-app.py
-app_runpod.py
-mail.py
+runpod_main_2.py
+runpod_main2.py
 __pycache__
