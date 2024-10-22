@@ -3,6 +3,7 @@ import logging
 import os
 import warnings
 
+import tiktoken
 from config import settings
 from dotenv import load_dotenv
 from langchain import hub
@@ -18,6 +19,13 @@ from langchain.schema.runnable import RunnablePassthrough
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
 
+
+def calculate_tokens(text, model="gpt-4o-mini"):
+    encoding = tiktoken.encoding_for_model(model)
+    tokens = encoding.encode(text)
+    return len(tokens)
+
+
 warnings.filterwarnings(action="ignore")
 
 logger = logging.getLogger(__name__)
@@ -28,6 +36,8 @@ os.environ["LANGCHAIN_TRACING_V2"] = "true"
 os.environ["LANGCHAIN_ENDPOINT"] = settings.LANGCHAIN_ENDPOINT or ""
 os.environ["LANGCHAIN_API_KEY"] = settings.LANGCHAIN_API_KEY or ""
 os.environ["LANGCHAIN_PROJECT"] = settings.LANGCHAIN_PROJECT or ""
+
+MAX_TOKENS = 4096
 
 
 class LangChainService:
@@ -45,6 +55,9 @@ class LangChainService:
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=100, chunk_overlap=10
         )
+        self.summarize_splitter = RecursiveCharacterTextSplitter(
+            chunk_size=2000, chunk_overlap=500
+        )
         self.summary_prompt = hub.pull("teddynote/summary-stuff-documents-korean")
         self.summary_prompt.template = settings.SUMMARY_PROMPT_TEMPLATE
         self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7, streaming=True)
@@ -61,16 +74,30 @@ class LangChainService:
         self.documents = [
             Document(page_content="\n".join([t["text"] for t in transcript["script"]]))
         ]
+        total_tokens = calculate_tokens(self.documents)
         # Create stuff documents chain for summarization
         summary_chain = create_stuff_documents_chain(self.llm, self.summary_prompt)
+        if total_tokens > MAX_TOKENS:
+            split_docs = self.summarize_splitter.split_documents(self.documents)
 
-        # Execute the summary chain
-        self.SUMMARY_RESULT = await summary_chain.ainvoke({"context": self.documents})
+            partial_summaries = []
+            for split_doc in split_docs:
+                partial_summary = await summary_chain.ainvoke({"context": split_doc})
+                partial_summaries.append(partial_summary)
 
-        # Prepare the retriever after summarization
-        await self.prepare_retriever()
+            # Execute the summary chain
+            self.SUMMARY_RESULT = await summary_chain.ainvoke(
+                {"context": partial_summaries}
+            )
 
-        return self.SUMMARY_RESULT
+            # Prepare the retriever after summarization
+            await self.prepare_retriever()
+
+            return self.SUMMARY_RESULT
+        else:
+            self.SUMMARY_RESULT = summary_chain.ainvoke({"context": self.documents})
+            await self.prepare_retriever()
+            return self.SUMMARY_RESULT
 
     async def prepare_retriever(self):
         if self.is_prepared:

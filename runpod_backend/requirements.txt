@@ -7,6 +7,7 @@ langchain-community==0.3.1
 langchain-openai==0.2.2
 langchain-teddynote==0.0.37
 runpod==1.7.2
+tiktoken==0.8.0
 
 
 
