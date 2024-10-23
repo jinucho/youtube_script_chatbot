@@ -8,6 +8,8 @@ langchain-openai==0.2.2
 langchain-teddynote==0.0.37
 runpod==1.7.2
 tiktoken==0.8.0
+tqdm==4.66.5
+ffmpeg-python==0.2.0
 
 
 
