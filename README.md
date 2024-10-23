@@ -10,8 +10,9 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 
 ### 2024.10.23
 
-#### Streamlit 구성 변경
-1. CSS구조 삭제, streamlit chat template 참고하여 채팅 ui 및 기능 재구현
+#### 개선
+1. streamlit - CSS구조 삭제, streamlit chat template 참고하여 채팅 ui 및 기능 재구현
+2. whisper - 긴 영상 처리를 위한 whisper 처리 개선(음성 병렬 다운로드 및 처리)
 
 ### ToDo
 1. 불필요 라이브러리 제거
