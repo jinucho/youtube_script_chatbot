@@ -71,25 +71,24 @@ class LangChainService:
 
     async def summarize(self, transcript: dict):
         # 각 세션별 요약 내용 및 상태 초기화
-        self.documents = [
-            Document(page_content="\n".join([t["text"] for t in transcript["script"]]))
-        ]
-        total_tokens = calculate_tokens(self.documents)
+        self.documents = [Document(page_content="\n".join([t["text"] for t in transcript["script"]]))]
+        total_tokens = calculate_tokens(self.documents[0].page_content)
         # Create stuff documents chain for summarization
         summary_chain = create_stuff_documents_chain(self.llm, self.summary_prompt)
         if total_tokens > MAX_TOKENS:
             split_docs = self.summarize_splitter.split_documents(self.documents)
-
+            print("문서 분할 완료")
             partial_summaries = []
             for split_doc in split_docs:
-                partial_summary = await summary_chain.ainvoke({"context": split_doc})
+                partial_summary = await summary_chain.ainvoke({"context": [split_doc]})
                 partial_summaries.append(partial_summary)
-
+            print("분할 요약 완료")
             # Execute the summary chain
+            partial_summaries_doc = [Document(page_content="\n".join(partial_summaries))]
             self.SUMMARY_RESULT = await summary_chain.ainvoke(
-                {"context": partial_summaries}
+                {"context": partial_summaries_doc}
             )
-
+            print("최종 요약 완료")
             # Prepare the retriever after summarization
             await self.prepare_retriever()
 
