@@ -1,5 +1,6 @@
 from faster_whisper import WhisperModel, BatchedInferencePipeline
 from config import settings
+from tqdm import tqdm
 
 
 class WhisperTranscriptionService:
@@ -29,7 +30,8 @@ class WhisperTranscriptionService:
 
     def _process_segments(self, segments):
         transcript = []
-        for segment in segments:
+        # tqdm을 사용하여 진행 상태를 표시
+        for segment in tqdm(segments, desc="Processing segments"):
             transcript.append(
                 {
                     "start": round(segment.start, 2),
