@@ -3,6 +3,6 @@
         "endpoint": "/get_script_summary",
         "method": "GET",
         "headers": {"x-session-id": "test123"},
-        "params": {"url": "https://youtu.be/AA621UofTUA?si=gn4XutRMWUDSYLFL"}
+        "params": {"url": "https://youtu.be/AqxkMcfprIg?si=B58Db4M9SG__nMVY"}
     }
 }
