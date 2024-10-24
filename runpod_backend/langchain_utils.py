@@ -94,7 +94,8 @@ class LangChainService:
 
             return self.SUMMARY_RESULT
         else:
-            self.SUMMARY_RESULT = summary_chain.ainvoke({"context": self.documents})
+            self.SUMMARY_RESULT = await summary_chain.ainvoke({"context": self.documents})
+            print("최종 요약 완료")
             await self.prepare_retriever()
             return self.SUMMARY_RESULT
 
