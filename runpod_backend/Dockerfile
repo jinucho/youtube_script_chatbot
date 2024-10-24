@@ -142,22 +142,12 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 # pip 업그레이드 및 기본 패키지 설치
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# PyTorch 및 관련 라이브러리 설치
-RUN pip install --no-cache-dir \
-    torch \
-    torchaudio \
-    --extra-index-url https://download.pytorch.org/whl/cu118
-
 # 의존성 설치
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Faster Whisper 및 관련 라이브러리 설치
-RUN pip install --no-cache-dir \
-    "faster-whisper @ https://github.com/SYSTRAN/faster-whisper/archive/refs/heads/master.tar.gz" \
-    pyannote.audio==0.0.1 \
-    torch==1.10.0+cu102 \
-    --extra-index-url https://download.pytorch.org/whl/cu102
+RUN pip install --no-cache-dir "faster-whisper @ https://github.com/SYSTRAN/faster-whisper/archive/refs/heads/master.tar.gz"
 
 # 다운로드 디렉토리 생성 및 권한 설정
 RUN mkdir -p /app/downloads && chmod -R 755 /app/downloads
@@ -166,7 +156,7 @@ RUN mkdir -p /app/downloads && chmod -R 755 /app/downloads
 COPY . .
 
 # Whisper 모델 다운로드 및 초기화
-RUN python3 -c "from faster_whisper import WhisperModel; model = WhisperModel('large-v3', device='cuda', compute_type='float16', download_root='/app/downloads')"
+RUN python3 -c "from faster_whisper import WhisperModel; model = WhisperModel('large-v3')"
 
 # 실행 명령
 CMD ["python", "runpod_main.py"]

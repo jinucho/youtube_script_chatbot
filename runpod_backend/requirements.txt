@@ -56,4 +56,4 @@ urllib3==2.2.3
 # Faster Whisper dependencies
 ctranslate2==4.4.0
 tokenizers==0.20.1
-pyannote.audio==0.0.1
+pyannote.audio==3.3.2
