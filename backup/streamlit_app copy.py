@@ -9,7 +9,7 @@ import requests
 from dotenv import load_dotenv
 
 load_dotenv()
-from mail import send_feedback_email
+from utils import send_feedback_email
 
 # RunPod 정보
 RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
