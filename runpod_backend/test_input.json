@@ -1,7 +1,6 @@
 {
     "input": {
-        "endpoint": "/get_script_summary",
-        "method": "GET",
+        "endpoint": "get_script_summary",
         "headers": {"x-session-id": "test123"},
         "params": {"url": "https://youtu.be/AqxkMcfprIg?si=B58Db4M9SG__nMVY"}
     }
