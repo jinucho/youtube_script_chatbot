@@ -3,13 +3,14 @@ import os
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
-import streamlit as st
+
 import requests
+import streamlit as st
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from mail import send_feedback_email
+from utils import send_feedback_email, create_downloadable_file
 
 # RunPod 정보
 RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
@@ -222,6 +223,20 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                         st.error(f"Request failed: {str(e)}")
                     except json.JSONDecodeError:
                         st.error("Failed to decode response")
+            # 데이터 다운로드 섹션
+        if st.session_state.summary and st.session_state.transcript:
+            st.markdown("---")
+            st.header("데이터 다운로드")
+            file_buffer = create_downloadable_file(st.session_state)
+            st.download_button(
+                label="요약, 스크립트, 채팅 내역 다운로드",
+                data=file_buffer,
+                file_name="youtube_summary_and_chat_history.txt",
+                mime="text/plain",
+            )
+        else:
+            st.write("요약, 스크립트, 채팅 내역이 존재하지 않습니다.")
+
 
 st.markdown("---")
 st.header("피드백을 보내주세요.")

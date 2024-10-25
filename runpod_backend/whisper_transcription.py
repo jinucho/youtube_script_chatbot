@@ -144,10 +144,13 @@ class WhisperTranscriptionService:
         try:
             segments, info = self.model.transcribe(
                 audio_path,
-                beam_size=5,
+                beam_size=15,
                 batch_size=32,
+                temperature=0.5,
                 word_timestamps=True,
-                initial_prompt=None,
+                initial_prompt="This audio may contain technical terms and English words; if present, retain English terms as is.",  # 영어와 기술 용어가 있을 경우 그대로 유지 요청
+                temperature=0.3,
+                repetition_penalty=2,
             )
             if info and hasattr(info, "language"):
                 self.language = info.language
