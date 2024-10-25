@@ -93,8 +93,7 @@ if st.button("스크립트 추출"):
             # get_title_hash 엔드포인트 호출
             payload = {
                 "input": {
-                    "endpoint": "/get_title_hash",
-                    "method": "GET",
+                    "endpoint": "get_title_hash",
                     "params": {"url": url},
                 }
             }
@@ -107,8 +106,7 @@ if st.button("스크립트 추출"):
                 # get_script_summary 엔드포인트 호출
                 payload = {
                     "input": {
-                        "endpoint": "/get_script_summary",
-                        "method": "GET",
+                        "endpoint": "get_script_summary",
                         "headers": {"x-session-id": st.session_state.session_id},
                         "params": {"url": url},
                     }
@@ -189,8 +187,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                     # RunPod API 호출
                     payload = {
                         "input": {
-                            "endpoint": "/rag_stream_chat",
-                            "method": "POST",
+                            "endpoint": "rag_stream_chat",
                             "headers": {"x-session-id": st.session_state.session_id},
                             "params": {"prompt": prompt},
                         }

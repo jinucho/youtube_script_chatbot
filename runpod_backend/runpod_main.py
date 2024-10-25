@@ -131,8 +131,7 @@ def runpod_handler(event):
     logger.info(f"Received event: {event}")
 
     async def async_handler():
-        endpoint = event["input"].get("endpoint", "/")
-        method = event["input"].get("method", "POST").upper()
+        endpoint = event["input"].get("endpoint", "")
         request_data = event["input"].get("params", {})
         headers = event["input"].get("headers", {})
         session_id = headers.get("x-session-id")
@@ -143,32 +142,30 @@ def runpod_handler(event):
         )
 
         try:
-            if method == "POST":
-                if endpoint == "/rag_stream_chat":
-                    prompt = request_data.get("prompt")
-                    response = await rag_stream_chat(
-                        prompt=prompt,
-                        session_id=session_id,
-                        langchain_service=langchain_service,
-                    )
-                    return response
+            if endpoint == "rag_stream_chat":
+                prompt = request_data.get("prompt")
+                response = await rag_stream_chat(
+                    prompt=prompt,
+                    session_id=session_id,
+                    langchain_service=langchain_service,
+                )
+                return response
 
-            elif method == "GET":
-                if endpoint == "/get_title_hash":
-                    url = request_data.get("url")
-                    return await get_title_hash(url, youtube_service=youtube_service)
+            elif endpoint == "get_title_hash":
+                url = request_data.get("url")
+                return await get_title_hash(url, youtube_service=youtube_service)
 
-                elif endpoint == "/get_script_summary":
-                    url = request_data.get("url")
-                    return await get_script_summary(
-                        url=url,
-                        session_id=session_id,
-                        youtube_service=youtube_service,
-                        whisper_service=whisper_service,
-                        langchain_service=langchain_service,
-                    )
-                else:
-                    return {"error": "Invalid endpoint or method"}
+            elif endpoint == "get_script_summary":
+                url = request_data.get("url")
+                return await get_script_summary(
+                    url=url,
+                    session_id=session_id,
+                    youtube_service=youtube_service,
+                    whisper_service=whisper_service,
+                    langchain_service=langchain_service,
+                )
+            else:
+                return {"error": "Invalid endpoint"}
 
         except Exception as e:
             logger.error(f"Error during request processing: {e}")
