@@ -53,6 +53,7 @@ class WhisperTranscriptionService:
 
     def _single_stream_download(self, url: str, temp_dir: str) -> str:
         """단일 스트림으로 파일을 다운로드합니다."""
+        print("Starting single stream download...")
         session = self.create_session()
         output_path = os.path.join(temp_dir, "complete_audio.mp4")
 
@@ -146,10 +147,9 @@ class WhisperTranscriptionService:
                 audio_path,
                 beam_size=15,
                 batch_size=32,
-                temperature=0.5,
+                temperature=0.3,
                 word_timestamps=True,
                 initial_prompt="This audio may contain technical terms and English words; if present, retain English terms as is.",  # 영어와 기술 용어가 있을 경우 그대로 유지 요청
-                temperature=0.3,
                 repetition_penalty=2,
             )
             if info and hasattr(info, "language"):
@@ -177,7 +177,6 @@ class WhisperTranscriptionService:
         self, url: str, chunk_duration: int = 30, num_download_chunks: int = 10
     ) -> List[Dict[str, Any]]:
         with tempfile.TemporaryDirectory() as temp_dir:
-            print("Starting download...")
             mp4_path = self.parallel_download(url, temp_dir, num_download_chunks)
             print("Download complete!")
 

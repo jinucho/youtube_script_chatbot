@@ -2,6 +2,6 @@
     "input": {
         "endpoint": "get_script_summary",
         "headers": {"x-session-id": "test123"},
-        "params": {"url": "https://youtu.be/AqxkMcfprIg?si=B58Db4M9SG__nMVY"}
+        "params": {"url": "https://youtu.be/zybyszetEcE?si=hWzrjNGR5zlUbq0v"}
     }
 }
