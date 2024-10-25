@@ -28,7 +28,11 @@ kst = timezone(timedelta(hours=9))
 st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
 st.title("유튜브 요약 및 AI 채팅")
 
-st.write("참고사항 : 첫 시작 시 시간이 소요 됩니다.")
+st.write("유튜브 영상 스크립트 기반 챗봇 입니다.")
+st.write(
+    "영상의 주소를 입력 후 스크립트를 추출하면 영상 내용 요약 및 전체 스크립트가 추출됩니다."
+)
+st.write("내용을 기반하여 AI에게 QA를 할 수 있습니다.")
 st.write("주의사항 : 1분 동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
 
 # 초기 상태 설정
