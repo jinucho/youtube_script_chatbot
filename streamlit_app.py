@@ -232,8 +232,6 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 file_name="youtube_summary_and_chat_history.txt",
                 mime="text/plain",
             )
-        else:
-            st.write("요약, 스크립트, 채팅 내역이 존재하지 않습니다.")
 
 
 st.markdown("---")
