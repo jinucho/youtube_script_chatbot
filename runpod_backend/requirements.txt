@@ -44,10 +44,9 @@ tiktoken==0.8.0
 tqdm==4.66.5
 
 # CUDA/GPU dependencies
---extra-index-url https://download.pytorch.org/whl/cu118
-torch==2.4.1+cu118
-torchaudio==2.4.1+cu118
-faiss-gpu-cu11==1.8.0
+torch==2.4.1
+torchaudio==2.4.1
+faiss-gpu-cu12==1.8.0
 
 # HTTP client
 requests==2.31.0

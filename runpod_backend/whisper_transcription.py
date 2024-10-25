@@ -1,16 +1,16 @@
-from faster_whisper import WhisperModel, BatchedInferencePipeline
-from config import settings
-import soundfile as sf
-import math
-import requests
-import tempfile
-import os
 import concurrent.futures
-from urllib3.util.retry import Retry
-from requests.adapters import HTTPAdapter
+import math
+import os
+import tempfile
+from typing import Any, Dict, List
+
 import ffmpeg
-import asyncio
-from typing import Dict, List, Any
+import requests
+import soundfile as sf
+from config import settings
+from faster_whisper import BatchedInferencePipeline, WhisperModel
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 
 class WhisperTranscriptionService:
@@ -87,7 +87,7 @@ class WhisperTranscriptionService:
                     "Warning: Could not determine file size. Falling back to single stream download."
                 )
                 return self._single_stream_download(url, temp_dir)
-
+            print("Starting parallel download...")
             chunk_size = total_size // num_chunks
             chunks = []
 
@@ -166,19 +166,6 @@ class WhisperTranscriptionService:
                     "start": round(segment.start + start_time, 2),
                     "end": round(segment.end + start_time, 2),
                     "text": segment.text,
-                    "words": (
-                        [
-                            {
-                                "start": round(word.start + start_time, 2),
-                                "end": round(word.end + start_time, 2),
-                                "word": word.word,
-                                "probability": round(word.probability, 4),
-                            }
-                            for word in segment.words
-                        ]
-                        if hasattr(segment, "words")
-                        else []
-                    ),
                 }
             )
         return transcript
