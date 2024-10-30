@@ -140,7 +140,7 @@ class WhisperTranscriptionService:
             print("FFmpeg error:", e.stderr.decode())
             return False
 
-    def process_audio_chunk(self, chunk_data: tuple,promp:dict = None,filtered_words:list = None) -> List[Dict[str, Any]]:
+    def process_audio_chunk(self, chunk_data: tuple,prompt:dict = None,filtered_words:list = None) -> List[Dict[str, Any]]:
         audio_path, start_time, duration = chunk_data
         try:
             segments, info = self.model.transcribe(
@@ -150,7 +150,7 @@ class WhisperTranscriptionService:
                 batch_size=32,
                 temperature=0.7,
                 word_timestamps=True,
-                initial_prompt=f"유튜브 영상 제목: {promp.get('title',"")}, 해시태그:{promp.get('hashtags',"")}",
+                initial_prompt=f"유튜브 영상 제목: {prompt.get('title','')}, 해시태그:{prompt.get('hashtags','')}",
                 repetition_penalty=2,
                 no_repeat_ngram_size=3,
                 length_penalty=1.1,
