@@ -77,9 +77,10 @@ async def get_script_summary(
     logger.info(f"Session ID in get_script_summary: {session_id}")
     try:
         video_info = await youtube_service.get_video_info(url)
+        title_hash = await youtube_service.get_title_and_hashtags(url)
         logger.info(f"[Session {session_id}] Video info for URL {url}: {video_info}")
 
-        transcript = await whisper_service.transcribe(video_info["audio_url"])
+        transcript = await whisper_service.transcribe(video_info["audio_url"],title_hash)
         logger.info(
             f"[Session {session_id}] Transcript for video {video_info['audio_url'][:10]}: {transcript.get('script')[:3]}"
         )

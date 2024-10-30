@@ -7,19 +7,19 @@ from typing import Any, Dict, List
 import ffmpeg
 import requests
 import soundfile as sf
-from config import settings
 from faster_whisper import BatchedInferencePipeline, WhisperModel
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-
+from konlpy.tag import Okt
 
 class WhisperTranscriptionService:
     def __init__(self):
         model = WhisperModel(
-            "large-v3", device=settings.DEVICE, compute_type=settings.COMPUTE_TYPE
+            "large-v3", device='cuda', compute_type="float16"
         )
         self.model = BatchedInferencePipeline(model=model)
         self.language = None
+        self.okt = Okt()
         print("Whisper 모델 초기화 완료")
 
     def create_session(self):
@@ -140,17 +140,24 @@ class WhisperTranscriptionService:
             print("FFmpeg error:", e.stderr.decode())
             return False
 
-    def process_audio_chunk(self, chunk_data: tuple) -> List[Dict[str, Any]]:
+    def process_audio_chunk(self, chunk_data: tuple,promp:dict = None,filtered_words:list = None) -> List[Dict[str, Any]]:
         audio_path, start_time, duration = chunk_data
         try:
             segments, info = self.model.transcribe(
                 audio_path,
-                beam_size=15,
+                beam_size=5,
+                best_of=7,
                 batch_size=32,
-                temperature=0.3,
+                temperature=0.7,
                 word_timestamps=True,
-                initial_prompt="This audio may contain technical terms and English words; if present, retain English terms as is.",  # 영어와 기술 용어가 있을 경우 그대로 유지 요청
+                initial_prompt=f"유튜브 영상 제목: {promp.get('title',"")}, 해시태그:{promp.get('hashtags',"")}",
                 repetition_penalty=2,
+                no_repeat_ngram_size=3,
+                length_penalty=1.1,
+                log_prob_threshold=-0.5,
+                no_speech_threshold=0.7,
+                patience=1.2,
+                hotwords=filtered_words
             )
             if info and hasattr(info, "language"):
                 self.language = info.language
@@ -174,7 +181,7 @@ class WhisperTranscriptionService:
         return transcript
 
     async def process_with_progress(
-        self, url: str, chunk_duration: int = 30, num_download_chunks: int = 10
+        self, url: str, prompt:dict, filtered_words:str,chunk_duration: int = 30, num_download_chunks: int = 10
     ) -> List[Dict[str, Any]]:
         with tempfile.TemporaryDirectory() as temp_dir:
             mp4_path = self.parallel_download(url, temp_dir, num_download_chunks)
@@ -204,7 +211,7 @@ class WhisperTranscriptionService:
 
             all_segments = []
             for chunk_data in chunks_data:
-                segments = self.process_audio_chunk(chunk_data)
+                segments = self.process_audio_chunk(chunk_data,prompt,filtered_words)
                 all_segments.extend(segments)
 
                 if os.path.exists(chunk_data[0]):
@@ -212,10 +219,18 @@ class WhisperTranscriptionService:
 
         return all_segments
 
-    async def transcribe(self, audio_url: str) -> Dict[str, Any]:
+    async def transcribe(self, audio_url: str,prompt: dict = None) -> Dict[str, Any]:
         try:
+            try:
+                tagged = self.okt.pos(prompt.get("title",""))
+                filtered_words = []
+                for word, tag in tagged:
+                    if tag == "Noun" or tag == "Hashtag":
+                        filtered_words.append(word)
+            except:
+                filtered_words = None
             segments = await self.process_with_progress(
-                audio_url, chunk_duration=30, num_download_chunks=10
+                audio_url, prompt, filtered_words,chunk_duration=30, num_download_chunks=10
             )
 
             print("텍스트 추출 완료")
