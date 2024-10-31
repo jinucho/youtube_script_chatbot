@@ -53,6 +53,7 @@ if "transcript" not in st.session_state:
 if "session_id" not in st.session_state:
     st.session_state.session_id = str(uuid.uuid4())
 
+
 def check_runpod_status(payload, interval=5):
     """
     RunPod 상태를 지속적으로 확인하여 'COMPLETED' 상태일 때 데이터를 반환.
@@ -80,6 +81,7 @@ def check_runpod_status(payload, interval=5):
             return result
         else:
             return response.json()
+
 
 # 유튜브 URL 입력 받기
 url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
@@ -115,8 +117,16 @@ if st.button("스크립트 추출"):
                 if summary_response:
                     summary_data = summary_response.get("output", {})
                     result = summary_data.get("summary_result", "")
-                    summary = result.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[0]
-                    questions = [q for q in result.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[1].split("\n") if q != '']
+                    summary = result.split("[FINAL SUMMARY]")[1].split(
+                        "[RECOMMEND QUESTIONS]"
+                    )[0]
+                    questions = [
+                        q
+                        for q in result.split("[FINAL SUMMARY]")[1]
+                        .split("[RECOMMEND QUESTIONS]")[1]
+                        .split("\n")
+                        if q != ""
+                    ]
                     st.session_state.summary = summary
                     st.session_state.recommend_question = questions
                     st.session_state.language = summary_data.get("language", "")
@@ -151,13 +161,13 @@ if st.session_state.title:
 
     with col2:
         st.subheader("AI 채팅")
-        
+
         # 추천 질문 표시
         if st.session_state.recommend_question:
             st.write("추천 질문:")
             # 추천 질문을 줄바꿈으로 분리하고 필터링
             questions = st.session_state.recommend_question
-            
+
             # 2열로 버튼 배치
             cols = st.columns(2)
             for i, question in enumerate(questions):
@@ -165,24 +175,30 @@ if st.session_state.title:
                     if st.button(question, key=f"btn_{i}"):
                         current_time = datetime.now(kst).strftime("%H:%M")
                         # 사용자 질문 추가
-                        user_message = f"{question.split(".")[1].strip()} ({current_time})"
+                        user_message = (
+                            f"{question.split('.')[1].strip()} ({current_time})"
+                        )
                         st.session_state.messages.append(
                             {"role": "user", "content": user_message}
                         )
-                        
+
                         # 봇 응답 생성
                         with st.chat_message("assistant"):
                             message_placeholder = st.empty()
                             bot_message = ""
-                            
+
                             payload = {
                                 "input": {
                                     "endpoint": "rag_stream_chat",
-                                    "headers": {"x-session-id": st.session_state.session_id},
-                                    "params": {"prompt": question.split(".")[1].strip()},
+                                    "headers": {
+                                        "x-session-id": st.session_state.session_id
+                                    },
+                                    "params": {
+                                        "prompt": question.split(".")[1].strip()
+                                    },
                                 }
                             }
-                            
+
                             try:
                                 chunks = check_runpod_status(payload)
                                 for chunk in chunks.get("output"):
@@ -193,13 +209,16 @@ if st.session_state.title:
                                         bot_message += content
                                         message_placeholder.write(f"{bot_message}▌")
                                         time.sleep(0.05)
-                                
+
                                 final_message = f"{bot_message} ({current_time})"
                                 message_placeholder.write(final_message)
                                 st.session_state.messages.append(
                                     {"role": "assistant", "content": final_message}
                                 )
-                            except (requests.RequestException, json.JSONDecodeError) as e:
+                            except (
+                                requests.RequestException,
+                                json.JSONDecodeError,
+                            ) as e:
                                 st.error(f"Error: {str(e)}")
 
         # 메시지를 표시할 고정 컨테이너
@@ -224,9 +243,7 @@ if st.session_state.title:
             user_message = f"{prompt} ({current_time})"
             with st.chat_message("user"):
                 st.write(user_message)
-            st.session_state.messages.append(
-                {"role": "user", "content": user_message}
-            )
+            st.session_state.messages.append({"role": "user", "content": user_message})
 
             with st.chat_message("assistant"):
                 message_placeholder = st.empty()
