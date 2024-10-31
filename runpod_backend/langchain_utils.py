@@ -27,6 +27,7 @@ def calculate_tokens(text, model="gpt-4o-mini"):
     tokens = encoding.encode(text)
     return len(tokens)
 
+
 warnings.filterwarnings(action="ignore")
 logger = logging.getLogger(__name__)
 load_dotenv()
@@ -79,27 +80,6 @@ class LangChainService:
 
     def _setup_rag_prompt(self):
         """RAG 체인 설정"""
-        # self.prompt = PromptTemplate.from_template(
-        #     """당신은 유튜브 스크립트 기반의 질문-답변(Question-Answering)을 수행하는 친절한 AI 어시스턴트입니다.
-        #     당신의 임무는 주어진 영상의 텍스트 문맥(context)과 내부 지식을 활용하여 주어진 질문(question)에 답하는 것입니다.
-
-        #     1. 검색된 다음 문맥(context)과 이전 대화 내용(chat_history)를 사용하여 질문(question)에 답하세요.
-        #     2. 만약, 전반적인 내용과 관계 있는 질문이지만, 주어진 문맥(context)에서 답을 찾을 수 없다면, 내부 지식(internal knowledge)을 사용하여 답변을 생성하세요.
-        #     3. **절대로 "주어진 문맥에서 {question}에 대한 답변을 찾을 수 없습니다."라는 문구를 사용하지 말고**, 질문에 대한 답변을 바로하세요.
-        #     4. 문맥이나 이전 대화 내용과 관련 없는 질문일 경우 "영상과 관계 없는 질문 입니다." 라고 답하세요.
-        #     5. 한글로 답변해 주세요. 단, 기술적인 용어나 이름은 번역하지 않고 그대로 사용해 주세요.
-
-        #     #이전 대화 내용:
-        #     {chat_history}
-
-        #     #질문:
-        #     {question}
-
-        #     #문맥:
-        #     {context}
-
-        #     #답변:"""
-        # )
         self.prompt = PromptTemplate.from_template(
             """당신은 유튜브 스크립트 기반의 질문-답변(Question-Answering)을 수행하는 친절한 AI 어시스턴트입니다.
                 당신의 주요 임무는 다음과 같습니다:
@@ -164,7 +144,7 @@ class LangChainService:
             await self.prepare_retriever()
             return self.SUMMARY_RESULT
         else:
-            self.SUMMARY_RESULT = await partial_summary_chain.ainvoke(
+            self.SUMMARY_RESULT = await final_summary_chain.ainvoke(
                 {"context": self.documents}
             )
             print("최종 요약 완료")
