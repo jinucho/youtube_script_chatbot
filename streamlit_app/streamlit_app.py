@@ -51,6 +51,8 @@ if "summary" not in st.session_state:
     st.session_state.summary = ""
 if "transcript" not in st.session_state:
     st.session_state.transcript = []
+if "recommendations" not in st.session_state:
+    st.session_state.recommendations = []
 if "session_id" not in st.session_state:
     # 세션 ID 생성 (각 사용자마다 고유한 세션 ID를 생성)
     st.session_state.session_id = str(uuid.uuid4())
@@ -126,7 +128,13 @@ if st.button("스크립트 추출"):
 
                 if summary_response:
                     summary_data = summary_response.get("output", {})
-                    st.session_state.summary = summary_data.get("summary_result", "")
+                    summary_result = summary_data.get("summary_result", "")
+                    st.session_state.summary = summary_result.split("[FINAL SUMMARY]")[
+                        1
+                    ].split("[RECOMMEND QUESTIONS]")[0]
+                    st.session_state.recommendations = summary_result.split(
+                        "[FINAL SUMMARY]"
+                    )[1].split("[RECOMMEND QUESTIONS]")[1]
                     st.session_state.language = summary_data.get("language", "")
                     st.session_state.transcript = summary_data.get("script", [])
                 else:
