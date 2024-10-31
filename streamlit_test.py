@@ -8,6 +8,7 @@ kst = timezone(timedelta(hours=9))
 # Streamlit 웹 애플리케이션 설정
 st.set_page_config(layout="wide")
 st.title("유튜브 요약 및 AI 채팅 (테스트 버전)")
+text = "https://youtu.be/zybyszetEcE?si=R3QstL48rD5UwpKT"
 
 # 초기 상태 설정
 if "messages" not in st.session_state:
@@ -31,7 +32,6 @@ with st.chat_message("assistant"):
         if st.button(query, key=query):
             # 사용자가 선택한 질문을 메시지로 추가
             st.session_state.messages.append({"role": "user", "content": query})
-
             # 더미 응답 생성
             bot_message = f"'{query}'에 대한 답변입니다. AI 응답이 여기에 표시됩니다."
             st.session_state.messages.append(
@@ -39,7 +39,8 @@ with st.chat_message("assistant"):
             )
 
 # 채팅 인터페이스
-with st.container(height=800):
+with st.container():
+    # 메시지 표시 영역
     messages_container = st.container(height=400)
 
     # 기존 채팅 기록 표시
@@ -47,3 +48,19 @@ with st.container(height=800):
         for message in st.session_state.messages:
             with st.chat_message(message["role"]):
                 st.write(message["content"])
+
+    # 사용자 입력 처리
+    if prompt := st.chat_input("메시지를 입력하세요"):
+        # 사용자 메시지 추가
+        st.session_state.messages.append({"role": "user", "content": prompt})
+
+        # AI 응답 생성 (더미 응답)
+        bot_message = (
+            f"입력하신 '{prompt}'에 대한 답변입니다. AI 응답이 여기에 표시됩니다."
+        )
+
+        # AI 응답 추가
+        st.session_state.messages.append({"role": "assistant", "content": bot_message})
+
+        # 페이지 새로고침을 통해 새 메시지 표시
+        st.rerun()
