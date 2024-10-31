@@ -169,33 +169,7 @@ if st.button("스크립트 추출"):
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
             st.session_state.video_id = url.split("/")[-1]
-
-            with st.spinner("요약 중입니다..."):
-                # get_script_summary 엔드포인트 호출
-                payload = {
-                    "input": {
-                        "endpoint": "get_script_summary",
-                        "headers": {"x-session-id": st.session_state.session_id},
-                        "params": {"url": url},
-                    }
-                }
-
-                # 상태를 직접 확인하여 작업 완료 시까지 대기
-                summary_response = check_runpod_status(payload)
-
-                if summary_response:
-                    summary_data = summary_response.get("output", {})
-                    summary_result = summary_data.get("summary_result", "")
-                    st.session_state.summary = summary_result.split("[FINAL SUMMARY]")[
-                        1
-                    ].split("[RECOMMEND QUESTIONS]")[0]
-                    st.session_state.recommendations = summary_result.split(
-                        "[FINAL SUMMARY]"
-                    )[1].split("[RECOMMEND QUESTIONS]")[1]
-                    st.session_state.language = summary_data.get("language", "")
-                    st.session_state.transcript = summary_data.get("script", [])
-                else:
-                    st.error("스크립트 요약에 실패했습니다.")
+            st.rerun()  # 기본 정보를 표시하기 위한 리런
 
 # URL이 입력되었고, 데이터가 session_state에 저장된 경우 표시
 if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아웃 표시
@@ -212,15 +186,51 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 f"allowfullscreen></iframe>",
                 unsafe_allow_html=True,
             )
+        if not st.session_state.summary:
+            with st.spinner("요약 중입니다..."):
+                # get_script_summary 엔드포인트 호출
+                payload = {
+                    "input": {
+                        "endpoint": "get_script_summary",
+                        "headers": {"x-session-id": st.session_state.session_id},
+                        "params": {"url": url},
+                    }
+                }
 
-        st.subheader("요약내용")
-        st.write(st.session_state.summary)
+                # 상태를 직접 확인하여 작업 완료 시까지 대기
+                summary_response = check_runpod_status(payload)
 
-        with st.expander("스크립트 보기", expanded=False):
-            if st.session_state.transcript:
-                with st.container(height=400):
-                    for item in st.session_state.transcript:
-                        st.write(f"{item['start']}초 - {item['end']}초: {item['text']}")
+                if summary_response:
+                    summary_data = summary_response.get("output", {})
+                    summary_result = summary_data.get("summary_result", "")
+                    summary = (
+                        summary_result.split("[FINAL SUMMARY]")[1]
+                        .split("[RECOMMEND QUESTIONS]")[0]
+                        .strip("\n\n")
+                    )
+                    st.session_state.summary = (
+                        summary
+                        if "\n\n" not in summary
+                        else summary.replace("\n\n", "\n")
+                    )
+                    st.session_state.recommendations = summary_result.split(
+                        "[FINAL SUMMARY]"
+                    )[1].split("[RECOMMEND QUESTIONS]")[1]
+                    st.session_state.language = summary_data.get("language", "")
+                    st.session_state.transcript = summary_data.get("script", [])
+                else:
+                    st.error("스크립트 요약에 실패했습니다.")
+        if st.session_state.summary:
+            st.subheader("요약내용")
+            st.write(st.session_state.summary)
+
+            with st.expander("스크립트 보기", expanded=False):
+                if st.session_state.transcript:
+                    with st.container(height=400):
+                        for item in st.session_state.transcript:
+                            st.write(
+                                f"{item['start']}초 - {item['end']}초: {item['text']}"
+                            )
 
     with col2:
         st.subheader("AI 채팅")
