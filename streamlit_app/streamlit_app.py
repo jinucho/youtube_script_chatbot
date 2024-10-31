@@ -29,12 +29,14 @@ kst = timezone(timedelta(hours=9))
 st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
 st.title("유튜브 요약 및 AI 채팅")
 
-st.write("유튜브 영상 스크립트 기반 챗봇 입니다.")
-st.write(
-    "영상의 주소를 입력 후 스크립트를 추출하면 영상 내용 요약 및 전체 스크립트가 추출됩니다."
-)
-st.write("내용을 기반하여 AI에게 QA를 할 수 있습니다.")
-st.write("주의사항 : 1분 동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
+col1, col2 = st.columns(2)
+with col1:
+    st.write(
+        "영상의 주소를 입력 후 스크립트를 추출하면 영상 내용 요약 및 전체 스크립트가 추출됩니다."
+    )
+    st.write("스크립트 내용에 기반하여 AI에게 질문 할 수 있습니다.")
+with col2:
+    st.write("주의사항 : 1분 동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
 
 # 초기 상태 설정
 if "messages" not in st.session_state:
@@ -90,6 +92,61 @@ def check_runpod_status(payload, interval=5):
             return result
         else:
             return response.json()
+
+
+def process_chat_response(prompt, message_placeholder):
+    """AI 응답을 스트리밍 방식으로 처리"""
+    bot_message = ""
+    payload = {
+        "input": {
+            "endpoint": "rag_stream_chat",
+            "headers": {"x-session-id": st.session_state.session_id},
+            "params": {"prompt": prompt},
+        }
+    }
+
+    try:
+        chunks = check_runpod_status(payload)
+        for chunk in chunks.get("output"):
+            if "content" in chunk:
+                content = chunk["content"]
+                if content == "[DONE]":
+                    break
+                bot_message += content
+                message_placeholder.write(f"{bot_message}▌")
+                time.sleep(0.05)
+
+        return bot_message
+    except Exception as e:
+        st.error(f"Error processing chat response: {str(e)}")
+        return None
+
+
+def get_current_time():
+    return datetime.now(kst).strftime("%H:%M")
+
+
+def handle_question(question):
+    """추천 질문이나 사용자 입력 질문 처리"""
+    current_time = get_current_time()
+
+    # 사용자 메시지 추가 및 표시
+    user_message = f"{question} ({current_time})"
+    with st.chat_message("user"):
+        st.write(user_message)
+    st.session_state.messages.append({"role": "user", "content": user_message})
+
+    # 봇 응답 생성
+    with st.chat_message("assistant"):
+        message_placeholder = st.empty()
+        bot_message = process_chat_response(question, message_placeholder)
+
+        if bot_message:
+            final_message = f"{bot_message} ({current_time})"
+            message_placeholder.write(final_message)
+            st.session_state.messages.append(
+                {"role": "assistant", "content": final_message}
+            )
 
 
 # 유튜브 URL 입력 받기
@@ -168,75 +225,73 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
     with col2:
         st.subheader("AI 채팅")
 
+        # 추천 질문 섹션
+        if st.session_state.recommendations:
+            recommed_container = st.container(border=True)
+            with recommed_container:
+                st.write("추천 질문:")
+                recommended_questions = [
+                    question.split(".")[1].strip()
+                    for question in st.session_state.recommendations.split("\n")[1:]
+                    if question.strip()  # 빈 줄 제거
+                ]
+
+                # 각 질문에 대한 버튼 생성
+                for question in recommended_questions:
+                    if st.button(question, key=f"btn_{question}"):
+                        st.session_state.messages.append(
+                            {
+                                "role": "user",
+                                "content": f"{question} ({get_current_time()})",
+                            }
+                        )
+                        st.rerun()  # 채팅창에서 대화를 시작하기 위해 페이지 새로고침
+
         # 메시지를 표시할 고정 컨테이너
         messages_container = st.container(height=800)
 
-        # 채팅 입력창을 위한 컨테이너 (가장 하단에 배치)
+        # 채팅 입력창을 위한 컨테이너
         input_container = st.container()
 
-        # 채팅 입력 처리 (먼저 처리하되 UI는 하단에 표시)
+        # 채팅 입력 처리
         with input_container:
             prompt = st.chat_input("메시지를 입력하세요")
 
         # 메시지 표시 (채팅 이력)
         with messages_container:
+            # 이전 메시지들 표시
             for message in st.session_state.messages:
                 with st.chat_message(message["role"]):
                     st.write(message["content"])
 
-            # 새 메시지 처리
-            if prompt:
-                current_time = datetime.now(kst).strftime("%H:%M")
-
-                # 사용자 메시지 추가 및 표시
-                user_message = f"{prompt} ({current_time})"
-                with st.chat_message("user"):
-                    st.write(user_message)
-                st.session_state.messages.append(
-                    {"role": "user", "content": user_message}
-                )
-
-                # 봇 응답 생성
+            # 마지막 사용자 메시지가 있고 아직 답변이 없는 경우 답변 생성
+            if (
+                st.session_state.messages
+                and st.session_state.messages[-1]["role"] == "user"
+            ):
                 with st.chat_message("assistant"):
                     message_placeholder = st.empty()
-                    bot_message = ""
+                    # 마지막 사용자 메시지에서 시간 정보 제거
+                    last_question = st.session_state.messages[-1]["content"].split(
+                        " ("
+                    )[0]
+                    bot_message = process_chat_response(
+                        last_question, message_placeholder
+                    )
 
-                    # RunPod API 호출
-                    payload = {
-                        "input": {
-                            "endpoint": "rag_stream_chat",
-                            "headers": {"x-session-id": st.session_state.session_id},
-                            "params": {"prompt": prompt},
-                        }
-                    }
-
-                    try:
-                        chunks = check_runpod_status(payload)
-                        for chunk in chunks.get("output"):
-                            if "content" in chunk:
-                                content = chunk["content"]
-                                if content == "[DONE]":
-                                    break
-                                bot_message += content
-                                message_placeholder.write(f"{bot_message}▌")
-                                time.sleep(0.05)
-
-                            elif "error" in chunk:
-                                st.error(f"Error: {chunk['error']}")
-                                break
-
-                        # 최종 봇 메시지 저장
-                        final_message = f"{bot_message} ({current_time})"
+                    if bot_message:
+                        final_message = f"{bot_message} ({get_current_time()})"
                         message_placeholder.write(final_message)
                         st.session_state.messages.append(
                             {"role": "assistant", "content": final_message}
                         )
 
-                    except requests.RequestException as e:
-                        st.error(f"Request failed: {str(e)}")
-                    except json.JSONDecodeError:
-                        st.error("Failed to decode response")
-            # 데이터 다운로드 섹션
+        # 새 메시지 처리
+        if prompt:
+            st.session_state.messages.append(
+                {"role": "user", "content": f"{prompt} ({get_current_time()})"}
+            )
+            st.rerun()
         if st.session_state.summary and st.session_state.transcript:
             st.markdown("---")
             st.header("데이터 다운로드")
@@ -244,7 +299,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
             st.download_button(
                 label="요약, 스크립트, 채팅 내역 다운로드",
                 data=file_buffer,
-                file_name="youtube_summary_and_chat_history.txt",
+                file_name="youtube.txt",
                 mime="text/plain",
             )
 
