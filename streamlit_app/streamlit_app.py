@@ -208,14 +208,15 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                         .split("[RECOMMEND QUESTIONS]")[0]
                         .strip("\n\n")
                     )
+                    questions = summary_result.split(
+                        "[FINAL SUMMARY]"
+                    )[1].split("[RECOMMEND QUESTIONS]")[1]
                     st.session_state.summary = (
                         summary
                         if "\n\n" not in summary
                         else summary.replace("\n\n", "\n")
                     )
-                    st.session_state.recommendations = summary_result.split(
-                        "[FINAL SUMMARY]"
-                    )[1].split("[RECOMMEND QUESTIONS]")[1]
+                    st.session_state.recommendations = questions.replace("\n\n", "\n")
                     st.session_state.language = summary_data.get("language", "")
                     st.session_state.transcript = summary_data.get("script", [])
                 else:
