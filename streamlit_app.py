@@ -3,7 +3,6 @@ import os
 import time
 import uuid
 from datetime import datetime, timedelta, timezone
-from io import BytesIO
 
 import requests
 import streamlit as st
@@ -168,7 +167,6 @@ if st.button("스크립트 추출"):
             st.session_state.video_id = url.split("/")[-1]
             st.rerun()  # 기본 정보를 표시하기 위한 리런
 
-# URL이 입력되었고, 데이터가 session_state에 저장된 경우 표시
 if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아웃 표시
     col1, col2 = st.columns(2)
 
@@ -205,9 +203,9 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                         .split("[RECOMMEND QUESTIONS]")[0]
                         .strip("\n\n")
                     )
-                    questions = summary_result.split(
-                        "[FINAL SUMMARY]"
-                    )[1].split("[RECOMMEND QUESTIONS]")[1]
+                    questions = summary_result.split("[FINAL SUMMARY]")[1].split(
+                        "[RECOMMEND QUESTIONS]"
+                    )[1]
                     st.session_state.summary = (
                         summary
                         if "\n\n" not in summary
