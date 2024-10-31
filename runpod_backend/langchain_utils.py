@@ -27,7 +27,6 @@ def calculate_tokens(text, model="gpt-4o-mini"):
     tokens = encoding.encode(text)
     return len(tokens)
 
-
 warnings.filterwarnings(action="ignore")
 logger = logging.getLogger(__name__)
 load_dotenv()
