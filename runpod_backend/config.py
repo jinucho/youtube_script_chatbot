@@ -43,20 +43,19 @@ class Settings(BaseSettings):
 
                                             [FINAL SUMMARY]
                                             Key topic: [Key topic]
-                                            • 🎯 First summary point
-                                            • 📚 Second summary point
-                                            • 💡 Third summary point
+                                            • 🎯 First summary point\n
+                                            • 📚 Second summary point\n
+                                            • 💡 Third summary point\n
                                             • ...
 
                                             [RECOMMEND QUESTIONS]
-                                            1. First question
-                                            2. Second question
+                                            1. First question\n
+                                            2. Second question\n
                                             3. Third question
 
                                             IMPORTANT FORMATTING RULES:
                                             - Use EXACTLY '[FINAL SUMMARY]' and '[RECOMMEND QUESTIONS]' as section headers
                                             - Start each summary point with '• ' followed by an emoji
-                                            - Each summary point and question must be separated by a single line break
                                             - Number questions with '1. ', '2. ', '3. '
                                             - Do not add any additional headers or sections
                                             - Do not modify the format of the section headers
