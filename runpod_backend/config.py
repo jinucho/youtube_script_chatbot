@@ -56,7 +56,7 @@ class Settings(BaseSettings):
                                             IMPORTANT FORMATTING RULES:
                                             - Use EXACTLY '[FINAL SUMMARY]' and '[RECOMMEND QUESTIONS]' as section headers
                                             - Start each summary point with '• ' followed by an emoji
-                                            - Each summary point and question must be separated by a blank line
+                                            - Each summary point and question must be separated by a single line break
                                             - Number questions with '1. ', '2. ', '3. '
                                             - Do not add any additional headers or sections
                                             - Do not modify the format of the section headers
