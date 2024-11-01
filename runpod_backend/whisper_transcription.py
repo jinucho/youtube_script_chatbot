@@ -150,7 +150,7 @@ class WhisperTranscriptionService:
                 batch_size=32,
                 temperature=0.7,
                 word_timestamps=True,
-                initial_prompt=f"유튜브 영상 제목: {prompt.get('title','')}, 해시태그:{prompt.get('hashtags','')}",
+                initial_prompt=f"{prompt.get('title','')}, {prompt.get('hashtags','')}",
                 repetition_penalty=2,
                 no_repeat_ngram_size=3,
                 length_penalty=1.1,

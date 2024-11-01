@@ -11,7 +11,7 @@ from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.docstore.document import Document
-from langchain.embeddings import OpenAIEmbeddings, HuggingFaceEmbeddings
+from langchain.embeddings import OpenAIEmbeddings
 from langchain.prompts import PromptTemplate
 from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.schema.output_parser import StrOutputParser
@@ -52,8 +52,7 @@ class LangChainService:
 
     def __init__(self, session_id: str):
         self.session_id = session_id
-        # self.embeddings = OpenAIEmbeddings()
-        self.embeddings = HuggingFaceEmbeddings(model_name="BAAI/bge-m3")
+        self.embeddings = OpenAIEmbeddings()
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=100, chunk_overlap=10
         )
