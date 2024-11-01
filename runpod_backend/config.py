@@ -35,14 +35,15 @@ class Settings(BaseSettings):
 
                                             FINAL REQUEST:
                                             1. The provided summary sections are partial summaries of one document. Please combine them into a single cohesive summary.
-                                            2. Summarize the main points in bullet points in KOREAN, but DO NOT translate any technical terms.
-                                            3. Each summarized sentence must start with a single emoji that fits the meaning of the sentence.
-                                            4. Use various emojis to make the summary more interesting, but keep it concise and relevant.
-                                            5. Focus on identifying and presenting only one main topic and one overall summary for the document.
-                                            6. Avoid redundant or repeated points, and ensure that the summary covers all key ideas without introducing multiple conclusions or topics.
-                                            7. Please refer to each summary and indicate the key topic.
-                                            8. If the original text is in English, we have already provided a summary translated into Korean, so please do not provide a separate translation.
-                                            9. Based on the summarized content, please create three recommended questions.
+                                            2. If the content of the document is sufficient, please ensure the summary includes key details and is at least 10 summary points.
+                                            3. Summarize the main points in bullet points in KOREAN, but DO NOT translate any technical terms.
+                                            4. Each summarized sentence must start with a single emoji that fits the meaning of the sentence.
+                                            5. Use various emojis to make the summary more interesting, but keep it concise and relevant.
+                                            6. Focus on identifying and presenting only one main topic and one overall summary for the document.
+                                            7. Avoid redundant or repeated points, and ensure that the summary covers all key ideas without introducing multiple conclusions or topics.
+                                            8. Please refer to each summary and indicate the key topic.
+                                            9. If the original text is in English, we have already provided a summary translated into Korean, so please do not provide a separate translation.
+                                            10. Based on the summarized content, please create three recommended questions.
 
                                             CONTEXT:
                                             {context}

@@ -36,26 +36,45 @@ with col1:
 with col2:
     st.write("주의사항 : 1분 동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
 
-# 초기 상태 설정
-if "messages" not in st.session_state:
+
+def initialize_session_state():
+    """세션 상태 초기화 함수"""
+    if "last_url" not in st.session_state:
+        st.session_state.last_url = ""
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    if "last_input" not in st.session_state:
+        st.session_state.last_input = ""
+    if "title" not in st.session_state:
+        st.session_state.title = ""
+    if "hashtags" not in st.session_state:
+        st.session_state.hashtags = ""
+    if "video_id" not in st.session_state:
+        st.session_state.video_id = ""
+    if "summary" not in st.session_state:
+        st.session_state.summary = ""
+    if "transcript" not in st.session_state:
+        st.session_state.transcript = []
+    if "recommendations" not in st.session_state:
+        st.session_state.recommendations = []
+    if "session_id" not in st.session_state:
+        st.session_state.session_id = str(uuid.uuid4())
+
+
+def reset_session_state():
+    """새로운 URL 처리를 위한 세션 상태 리셋 함수"""
     st.session_state.messages = []
-if "last_input" not in st.session_state:
     st.session_state.last_input = ""
-if "title" not in st.session_state:
     st.session_state.title = ""
-if "hashtags" not in st.session_state:
     st.session_state.hashtags = ""
-if "video_id" not in st.session_state:
     st.session_state.video_id = ""
-if "summary" not in st.session_state:
     st.session_state.summary = ""
-if "transcript" not in st.session_state:
     st.session_state.transcript = []
-if "recommendations" not in st.session_state:
     st.session_state.recommendations = []
-if "session_id" not in st.session_state:
-    # 세션 ID 생성 (각 사용자마다 고유한 세션 ID를 생성)
-    st.session_state.session_id = str(uuid.uuid4())
+    st.session_state.session_id = str(uuid.uuid4())  # 새로운 세션 ID 생성
+
+
+initialize_session_state()
 
 
 def check_runpod_status(payload, interval=5):
@@ -150,6 +169,12 @@ def handle_question(question):
 # 유튜브 URL 입력 받기
 url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
 
+# URL이 변경되었는지 확인하고 처리
+if url != st.session_state.last_url:
+    st.session_state.last_url = url
+    if url:  # URL이 있는 경우에만 리셋
+        reset_session_state()
+
 # URL 입력 및 스크립트 추출을 위한 버튼 클릭 상태 확인
 if st.button("스크립트 추출"):
     if url:
@@ -183,6 +208,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 f"allowfullscreen></iframe>",
                 unsafe_allow_html=True,
             )
+
         if not st.session_state.summary:
             with st.spinner("요약 중입니다..."):
                 # get_script_summary 엔드포인트 호출
@@ -222,7 +248,8 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
             st.subheader("요약내용")
             st.write(st.session_state.summary)
 
-            with st.expander("스크립트 보기", expanded=False):
+            transcript_expander = st.expander("스크립트 보기", expanded=False)
+            with transcript_expander:
                 if st.session_state.transcript:
                     with st.container(height=400):
                         for item in st.session_state.transcript:
@@ -237,11 +264,11 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
         if st.session_state.recommendations:
             recommed_container = st.container(border=True)
             with recommed_container:
-                st.write("추천 질문:")
+                st.write("추천 질문(click):")
                 recommended_questions = [
                     question.split(".")[1].strip()
                     for question in st.session_state.recommendations.split("\n")[1:]
-                    if question.strip()  # 빈 줄 제거
+                    if question.strip()
                 ]
 
                 # 각 질문에 대한 버튼 생성
@@ -253,7 +280,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                                 "content": f"{question} ({get_current_time()})",
                             }
                         )
-                        st.rerun()  # 채팅창에서 대화를 시작하기 위해 페이지 새로고침
+                        st.rerun()
 
         # 메시지를 표시할 고정 컨테이너
         messages_container = st.container(height=800)
