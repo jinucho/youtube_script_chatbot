@@ -1,11 +1,61 @@
 import os
 import smtplib
+import time
 from datetime import datetime, timedelta, timezone
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from io import BytesIO
 
+import requests
+
 kst = timezone(timedelta(hours=9))
+
+# RunPod 정보
+RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
+RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
+RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
+HEADERS = {
+    "Authorization": f"Bearer {RUNPOD_API_KEY}",
+    "Content-Type": "application/json",
+}
+
+
+def get_current_time():
+    return datetime.now(kst).strftime("%H:%M")
+
+
+def check_runpod_status(payload, interval=5):
+    """
+    RunPod 상태를 지속적으로 확인하여 'COMPLETED' 상태일 때 데이터를 반환.
+    :param runpod_url: RunPod API 호출 URL
+    :param headers: HTTP 요청 헤더
+    :param payload: 요청에 필요한 데이터
+    :param interval: 상태 확인 주기 (초)
+    :return: 작업이 완료되면 결과 데이터 반환
+    """
+    response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
+    if response.status_code == 200:
+        result = response.json()
+        if result.get("status") in ["IN_PROGRESS", "IN_QUEUE"]:
+            job_id = result.get("id")
+            status_url = (
+                f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/status/{job_id}"
+            )
+
+            while True:
+                status_response = requests.get(status_url, headers=HEADERS)
+                if status_response.status_code == 200:
+                    status_data = status_response.json()
+                    if status_data.get("status") == "COMPLETED":
+                        return status_data
+                    else:
+                        continue
+
+                time.sleep(interval)  # 지정된 간격 후 다시 상태 확인
+        elif result.get("status") == "COMPLETED":
+            return result
+        else:
+            return response.json()
 
 
 def send_feedback_email(feedback, session_id):
