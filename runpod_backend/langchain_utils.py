@@ -11,7 +11,8 @@ from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.docstore.document import Document
-from langchain.embeddings import OpenAIEmbeddings
+# from langchain.embeddings import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.prompts import PromptTemplate
 from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.schema.output_parser import StrOutputParser
@@ -39,6 +40,10 @@ os.environ["LANGCHAIN_PROJECT"] = settings.LANGCHAIN_PROJECT or ""
 
 MAX_TOKENS = 4096
 
+model_name = "BAAI/bge-m3"
+model_kwargs = {"device": "cuda"}
+encode_kwargs = {"normalize_embeddings": True}
+
 
 class LangChainService:
     _instances = {}
@@ -52,7 +57,8 @@ class LangChainService:
 
     def __init__(self, session_id: str):
         self.session_id = session_id
-        self.embeddings = OpenAIEmbeddings()
+        # self.embeddings = OpenAIEmbeddings()
+        self.hf_embeddings = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs, encode_kwargs=encode_kwargs)
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=100, chunk_overlap=10
         )
@@ -161,7 +167,7 @@ class LangChainService:
 
             split_docs = self.text_splitter.split_documents(self.documents)
             print(f"Split_docs = {split_docs[0]}")
-            vec_store = FAISS.from_documents(split_docs, self.embeddings)
+            vec_store = FAISS.from_documents(split_docs, self.hf_embeddings)
             bm25_retriever = BM25Retriever.from_documents(split_docs)
             bm25_retriever.k = 10
             vec_retriever = vec_store.as_retriever(search_kwargs={"k": 10})
