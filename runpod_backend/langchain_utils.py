@@ -11,8 +11,6 @@ from langchain import hub
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chat_models import ChatOpenAI
 from langchain.docstore.document import Document
-# from langchain.embeddings import OpenAIEmbeddings
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain.prompts import PromptTemplate
 from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.schema.output_parser import StrOutputParser
@@ -21,6 +19,7 @@ from langchain.vectorstores import FAISS
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_huggingface import HuggingFaceEmbeddings
 
 
 def calculate_tokens(text, model="gpt-4o-mini"):
@@ -58,7 +57,11 @@ class LangChainService:
     def __init__(self, session_id: str):
         self.session_id = session_id
         # self.embeddings = OpenAIEmbeddings()
-        self.hf_embeddings = HuggingFaceEmbeddings(model_name=model_name, model_kwargs=model_kwargs, encode_kwargs=encode_kwargs)
+        self.hf_embeddings = HuggingFaceEmbeddings(
+            model_name=model_name,
+            model_kwargs=model_kwargs,
+            encode_kwargs=encode_kwargs,
+        )
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=100, chunk_overlap=10
         )
@@ -168,6 +171,7 @@ class LangChainService:
             split_docs = self.text_splitter.split_documents(self.documents)
             print(f"Split_docs = {split_docs[0]}")
             vec_store = FAISS.from_documents(split_docs, self.hf_embeddings)
+            vec_store.save_local("rag_store")
             bm25_retriever = BM25Retriever.from_documents(split_docs)
             bm25_retriever.k = 10
             vec_retriever = vec_store.as_retriever(search_kwargs={"k": 10})

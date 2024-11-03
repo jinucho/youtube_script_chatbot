@@ -8,6 +8,7 @@ from utils import (
     create_downloadable_file,
     get_current_time,
     send_feedback_email,
+    get_video_id,
 )
 
 # Streamlit 웹 애플리케이션 설정
@@ -140,7 +141,7 @@ if st.button("스크립트 추출"):
             data = check_runpod_status(payload)
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
-            st.session_state.video_id = url.split("/")[-1]
+            st.session_state.video_id = get_video_id(url)
             st.rerun()  # 기본 정보를 표시하기 위한 리런
 
 if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아웃 표시
@@ -157,7 +158,6 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 f"allowfullscreen></iframe>",
                 unsafe_allow_html=True,
             )
-
         if not st.session_state.summary:
             with st.spinner("요약 중입니다..."):
                 # get_script_summary 엔드포인트 호출
