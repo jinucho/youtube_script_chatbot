@@ -16,10 +16,16 @@ from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.schema.output_parser import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
+from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_huggingface import HuggingFaceEmbeddings
+
+
+class SummaryParser(BaseModel):
+    summary: str = Field(description="Summary of the document")
+    recommendations: list[str] = Field(description="Recommendations for the document")
 
 
 def calculate_tokens(text, model="gpt-4o-mini"):
@@ -54,9 +60,9 @@ class LangChainService:
             cls._instances[session_id] = cls(session_id)
         return cls._instances[session_id]
 
-    def __init__(self, session_id: str):
+    def __init__(self, session_id: str, url_id: str):
         self.session_id = session_id
-        # self.embeddings = OpenAIEmbeddings()
+        self.url_id = url_id
         self.hf_embeddings = HuggingFaceEmbeddings(
             model_name=model_name,
             model_kwargs=model_kwargs,
@@ -129,7 +135,9 @@ class LangChainService:
             self.llm, self.partial_summary_prompt
         )
         final_summary_chain = create_stuff_documents_chain(
-            self.llm, self.final_summary_prompt
+            llm=self.llm,
+            prompt=self.final_summary_prompt,
+            output_parser=SummaryParser(),
         )
 
         if total_tokens > MAX_TOKENS:
