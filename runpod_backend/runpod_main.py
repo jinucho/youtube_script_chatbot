@@ -27,8 +27,9 @@ CURRENT_DIR = os.getcwd()
 
 os.makedirs(os.path.join(CURRENT_DIR, "data"), exist_ok=True)
 
+
 # 서비스 인스턴스를 비동기적으로 관리하는 함수
-async def get_service_instances(session_id=None,url_id=None):
+async def get_service_instances(session_id=None, url_id=None):
     global youtube_service_instance, whisper_service_instance
 
     # YouTubeService 인스턴스 생성 (싱글톤)
@@ -53,13 +54,13 @@ async def get_service_instances(session_id=None,url_id=None):
 
 
 # 비동기 작업 함수들
-async def get_title_hash(url: str, url_id:str,youtube_service: YouTubeService):
+async def get_title_hash(url: str, url_id: str, youtube_service: YouTubeService):
     if not url or not isinstance(url, str):
         raise ValueError("Invalid URL format or missing URL")
 
     logger.info(f"Received URL in get_title_hash: {url}")
-    try:    
-        title_and_hashtags = await youtube_service.get_video_data(url,url_id)
+    try:
+        title_and_hashtags = await youtube_service.get_video_data(url, url_id)
         logger.info(f"Title and Hashtags for URL {url}: {title_and_hashtags}")
         return title_and_hashtags
     except Exception as e:
@@ -81,16 +82,16 @@ async def get_script_summary(
     logger.info(f"Received URL in get_script_summary: {url}")
     logger.info(f"Session ID in get_script_summary: {session_id}")
     try:
-        video_info = await youtube_service.get_video_data(url=url,url_id=url_id)
-        title_hash = video_info.get("title_hashtags","")
-        audio_url = video_info.get("audio_url","")
+        video_info = await youtube_service.get_video_data(url=url, url_id=url_id)
+        title_hash = video_info.get("title_hashtags", "")
+        audio_url = video_info.get("audio_url", "")
         logger.info(f"[Session {session_id}] Video info for URL {url}: {video_info}")
-        transcript = await whisper_service.transcribe(audio_url,title_hash,url_id)
+        transcript = await whisper_service.transcribe(audio_url, title_hash, url_id)
         logger.info(
             f"[Session {session_id}] Transcript for video {video_info['audio_url'][:10]}: {transcript.get('script')[:3]}"
         )
 
-        summary, questions = await langchain_service.summarize(transcript,url_id)
+        summary, questions = await langchain_service.summarize(transcript, url_id)
         logger.info(f"[Session {session_id}] Summary for transcript: {summary[:10]}")
 
         return {
@@ -112,7 +113,7 @@ async def get_script_summary(
 
 
 async def rag_stream_chat(
-    prompt: str, session_id: str, langchain_service: LangChainService
+    prompt: str, session_id: str, url_id: str, langchain_service: LangChainService
 ):
     if not session_id:
         raise ValueError("Session ID is required")
@@ -122,7 +123,7 @@ async def rag_stream_chat(
 
     async def generate():
         try:
-            async for chunk in langchain_service.stream_chat(prompt):
+            async for chunk in langchain_service.stream_chat(prompt, url_id):
                 yield {"content": chunk}
             yield {"content": "[DONE]"}
         except Exception as e:
@@ -151,9 +152,11 @@ def runpod_handler(event):
         try:
             if endpoint == "rag_stream_chat":
                 prompt = request_data.get("prompt")
+                url_id = request_data.get("url_id")
                 response = await rag_stream_chat(
                     prompt=prompt,
                     session_id=session_id,
+                    url_id=url_id,
                     langchain_service=langchain_service,
                 )
                 return response
@@ -161,7 +164,9 @@ def runpod_handler(event):
             elif endpoint == "get_title_hash":
                 url = request_data.get("url")
                 url_id = request_data.get("url_id")
-                return await get_title_hash(url=url,url_id=url_id, youtube_service=youtube_service)
+                return await get_title_hash(
+                    url=url, url_id=url_id, youtube_service=youtube_service
+                )
 
             elif endpoint == "get_script_summary":
                 url = request_data.get("url")
@@ -173,7 +178,6 @@ def runpod_handler(event):
                     youtube_service=youtube_service,
                     whisper_service=whisper_service,
                     langchain_service=langchain_service,
-
                 )
             else:
                 return {"error": "Invalid endpoint"}

@@ -5,7 +5,7 @@ import warnings
 from operator import itemgetter
 
 import tiktoken
-from config import settings, backup_data,custom_parser
+from config import settings, backup_data, custom_parser
 from dotenv import load_dotenv
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chat_models import ChatOpenAI
@@ -20,6 +20,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_huggingface import HuggingFaceEmbeddings
+
 
 def calculate_tokens(text, model="gpt-4o-mini"):
     encoding = tiktoken.encoding_for_model(model)
@@ -67,8 +68,12 @@ class LangChainService:
         self.summarize_splitter = RecursiveCharacterTextSplitter(
             chunk_size=2000, chunk_overlap=500
         )
-        self.partial_summary_prompt = PromptTemplate.from_template(settings.PARTIAL_SUMMARY_PROMPT_TEMPLATE)
-        self.final_summary_prompt = PromptTemplate.from_template(settings.FINAL_SUMMARY_PROMPT_TEMPLATE)
+        self.partial_summary_prompt = PromptTemplate.from_template(
+            settings.PARTIAL_SUMMARY_PROMPT_TEMPLATE
+        )
+        self.final_summary_prompt = PromptTemplate.from_template(
+            settings.FINAL_SUMMARY_PROMPT_TEMPLATE
+        )
         self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7, streaming=True)
         self.retriever = None
         self.is_prepared = False
@@ -114,11 +119,11 @@ class LangChainService:
                     #답변:"""
         )
 
-    async def summarize(self, transcript: dict,url_id: str = None):
+    async def summarize(self, transcript: dict, url_id: str = None):
         self.documents = [
             Document(page_content="\n".join([t["text"] for t in transcript["script"]]))
         ]
-        summary_info = backup_data.get(url_id=url_id).get("summary","")
+        summary_info = backup_data.get(url_id=url_id).get("summary", "")
         if summary_info:
             self.SUMMARY_RESULT = summary_info
             await self.prepare_retriever(url_id)
@@ -129,8 +134,7 @@ class LangChainService:
             self.llm, self.partial_summary_prompt
         )
         final_summary_chain = create_stuff_documents_chain(
-            llm=self.llm,
-            prompt=self.final_summary_prompt
+            llm=self.llm, prompt=self.final_summary_prompt
         )
 
         if total_tokens > MAX_TOKENS:
@@ -158,11 +162,13 @@ class LangChainService:
                 {"context": self.documents}
             )
             print("최종 요약 완료")
-            backup_data.add_data(url_id=url_id,type="summary", data=self.SUMMARY_RESULT)
+            backup_data.add_data(
+                url_id=url_id, type="summary", data=self.SUMMARY_RESULT
+            )
             await self.prepare_retriever(url_id)
             return custom_parser(self.SUMMARY_RESULT)
 
-    async def prepare_retriever(self,url_id: str = None):
+    async def prepare_retriever(self, url_id: str = None):
         if self.is_prepared:
             return
 
@@ -173,8 +179,12 @@ class LangChainService:
             split_docs = self.text_splitter.split_documents(self.documents)
             print(f"Split_docs = {split_docs[0]}")
             vec_store = None
-            if os.path.isdir(f"data/{url_id}") :
-                vec_store = FAISS.load_local(f"data/{url_id}", self.hf_embeddings,allow_dangerous_deserialization=True)
+            if os.path.isdir(f"data/{url_id}"):
+                vec_store = FAISS.load_local(
+                    f"data/{url_id}",
+                    self.hf_embeddings,
+                    allow_dangerous_deserialization=True,
+                )
             else:
                 vec_store = FAISS.from_documents(split_docs, self.hf_embeddings)
                 vec_store.save_local(f"data/{url_id}")
@@ -214,9 +224,9 @@ class LangChainService:
             )
             raise e
 
-    async def stream_chat(self, prompt: str):
+    async def stream_chat(self, prompt: str, url_id: str = None):
         if not self.is_prepared:
-            await self.prepare_retriever()
+            await self.prepare_retriever(url_id=url_id)
 
         try:
             async for chunk in self.chain_with_history.astream(

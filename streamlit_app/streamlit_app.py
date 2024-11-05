@@ -65,14 +65,14 @@ def reset_session_state():
 initialize_session_state()
 
 
-def process_chat_response(prompt, message_placeholder):
+def process_chat_response(prompt, url_id, message_placeholder):
     """AI 응답을 스트리밍 방식으로 처리"""
     bot_message = ""
     payload = {
         "input": {
             "endpoint": "rag_stream_chat",
             "headers": {"x-session-id": st.session_state.session_id},
-            "params": {"prompt": prompt},
+            "params": {"prompt": prompt, "url_id": url_id},
         }
     }
 
@@ -106,7 +106,9 @@ def handle_question(question):
     # 봇 응답 생성
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        bot_message = process_chat_response(question, message_placeholder)
+        bot_message = process_chat_response(
+            question, st.session_state.video_id, message_placeholder
+        )
 
         if bot_message:
             final_message = f"{bot_message} ({current_time})"
@@ -135,7 +137,7 @@ if st.button("스크립트 추출"):
             payload = {
                 "input": {
                     "endpoint": "get_title_hash",
-                    "params": {"url": url},
+                    "params": {"url": url, "url_id": st.session_state.video_id},
                 }
             }
             data = check_runpod_status(payload)
@@ -165,7 +167,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                     "input": {
                         "endpoint": "get_script_summary",
                         "headers": {"x-session-id": st.session_state.session_id},
-                        "params": {"url": url},
+                        "params": {"url": url, "url_id": st.session_state.video_id},
                     }
                 }
 
@@ -175,7 +177,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 if summary_response:
                     result = summary_response.get("output", {})
                     summary = result.get("summary_result", "")
-                    questions = result.get("recommended_questions","")
+                    questions = result.get("recommended_questions", "")
                     st.session_state.summary = (
                         summary
                         if "\n\n" not in summary
