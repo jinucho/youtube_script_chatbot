@@ -151,22 +151,33 @@ class LangChainService:
             partial_summaries_doc = [
                 Document(page_content="\n".join(partial_summaries))
             ]
-            self.SUMMARY_RESULT = await final_summary_chain.ainvoke(
+            result = await final_summary_chain.ainvoke(
                 {"context": partial_summaries_doc}
             )
             print("최종 요약 완료")
-            await self.prepare_retriever(url_id)
-            return self.SUMMARY_RESULT
-        else:
-            self.SUMMARY_RESULT = await final_summary_chain.ainvoke(
-                {"context": self.documents}
-            )
-            print("최종 요약 완료")
+            self.SUMMARY_RESULT, self.QUESTIONS = custom_parser(result)
             backup_data.add_data(
                 url_id=url_id, type="summary", data=self.SUMMARY_RESULT
             )
+            backup_data.add_data(
+                url_id=url_id, type="questions", data=self.QUESTIONS
+            )
             await self.prepare_retriever(url_id)
-            return custom_parser(self.SUMMARY_RESULT)
+            return self.SUMMARY_RESULT, self.QUESTIONS
+        else:
+            result = await final_summary_chain.ainvoke(
+                {"context": self.documents}
+            )
+            print("최종 요약 완료")
+            self.SUMMARY_RESULT, self.QUESTIONS = custom_parser(result)
+            backup_data.add_data(
+                url_id=url_id, type="summary", data=self.SUMMARY_RESULT
+            )
+            backup_data.add_data(
+                url_id=url_id, type="questions", data=self.QUESTIONS
+            )
+            await self.prepare_retriever(url_id)
+            return self.SUMMARY_RESULT, self.QUESTIONS
 
     async def prepare_retriever(self, url_id: str = None):
         if self.is_prepared:
