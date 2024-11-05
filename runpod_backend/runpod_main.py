@@ -4,6 +4,7 @@ import os
 import warnings
 
 import runpod
+from config import backup_data
 from langchain_utils import LangChainService
 from whisper_transcription import WhisperTranscriptionService
 from youtube_utils import YouTubeService
@@ -22,9 +23,12 @@ youtube_service_instance = None
 whisper_service_instance = None
 langchain_service_cache = {}
 
+CURRENT_DIR = os.getcwd()
+
+os.makedirs(os.path.join(CURRENT_DIR, "data"), exist_ok=True)
 
 # 서비스 인스턴스를 비동기적으로 관리하는 함수
-async def get_service_instances(session_id=None):
+async def get_service_instances(session_id=None,url_id=None):
     global youtube_service_instance, whisper_service_instance
 
     # YouTubeService 인스턴스 생성 (싱글톤)
@@ -33,7 +37,7 @@ async def get_service_instances(session_id=None):
 
     # WhisperTranscriptionService 인스턴스 생성 (싱글톤)
     if whisper_service_instance is None:
-        whisper_service_instance = WhisperTranscriptionService()
+        whisper_service_instance = WhisperTranscriptionService(url_id)
 
     # LangChainService 인스턴스 생성 (세션별)
     if session_id:
@@ -49,13 +53,13 @@ async def get_service_instances(session_id=None):
 
 
 # 비동기 작업 함수들
-async def get_title_hash(url: str, youtube_service: YouTubeService):
+async def get_title_hash(url: str, url_id:str,youtube_service: YouTubeService):
     if not url or not isinstance(url, str):
         raise ValueError("Invalid URL format or missing URL")
 
     logger.info(f"Received URL in get_title_hash: {url}")
-    try:
-        title_and_hashtags = await youtube_service.get_title_and_hashtags(url)
+    try:    
+        title_and_hashtags = await youtube_service.get_video_data(url,url_id)
         logger.info(f"Title and Hashtags for URL {url}: {title_and_hashtags}")
         return title_and_hashtags
     except Exception as e:
@@ -66,6 +70,7 @@ async def get_title_hash(url: str, youtube_service: YouTubeService):
 async def get_script_summary(
     url: str,
     session_id: str,
+    url_id: str,
     youtube_service: YouTubeService,
     whisper_service: WhisperTranscriptionService,
     langchain_service: LangChainService,
@@ -76,20 +81,21 @@ async def get_script_summary(
     logger.info(f"Received URL in get_script_summary: {url}")
     logger.info(f"Session ID in get_script_summary: {session_id}")
     try:
-        video_info = await youtube_service.get_video_info(url)
-        title_hash = await youtube_service.get_title_and_hashtags(url)
+        video_info = await youtube_service.get_video_data(url=url,url_id=url_id)
+        title_hash = video_info.get("title_hashtags","")
+        audio_url = video_info.get("audio_url","")
         logger.info(f"[Session {session_id}] Video info for URL {url}: {video_info}")
-
-        transcript = await whisper_service.transcribe(video_info["audio_url"],title_hash)
+        transcript = await whisper_service.transcribe(audio_url,title_hash,url_id)
         logger.info(
             f"[Session {session_id}] Transcript for video {video_info['audio_url'][:10]}: {transcript.get('script')[:3]}"
         )
 
-        summary = await langchain_service.summarize(transcript)
+        summary, questions = await langchain_service.summarize(transcript,url_id)
         logger.info(f"[Session {session_id}] Summary for transcript: {summary[:10]}")
 
         return {
             "summary_result": summary,
+            "recommended_questions": questions,
             "language": transcript["language"],
             "script": transcript["script"],
         }
@@ -154,16 +160,20 @@ def runpod_handler(event):
 
             elif endpoint == "get_title_hash":
                 url = request_data.get("url")
-                return await get_title_hash(url, youtube_service=youtube_service)
+                url_id = request_data.get("url_id")
+                return await get_title_hash(url=url,url_id=url_id, youtube_service=youtube_service)
 
             elif endpoint == "get_script_summary":
                 url = request_data.get("url")
+                url_id = request_data.get("url_id")
                 return await get_script_summary(
                     url=url,
                     session_id=session_id,
+                    url_id=url_id,
                     youtube_service=youtube_service,
                     whisper_service=whisper_service,
                     langchain_service=langchain_service,
+
                 )
             else:
                 return {"error": "Invalid endpoint"}

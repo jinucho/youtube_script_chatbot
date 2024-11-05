@@ -173,24 +173,17 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 summary_response = check_runpod_status(payload)
 
                 if summary_response:
-                    summary_data = summary_response.get("output", {})
-                    summary_result = summary_data.get("summary_result", "")
-                    summary = (
-                        summary_result.split("[FINAL SUMMARY]")[1]
-                        .split("[RECOMMEND QUESTIONS]")[0]
-                        .strip("\n\n")
-                    )
-                    questions = summary_result.split("[FINAL SUMMARY]")[1].split(
-                        "[RECOMMEND QUESTIONS]"
-                    )[1]
+                    result = summary_response.get("output", {})
+                    summary = result.get("summary_result", "")
+                    questions = result.get("recommended_questions","")
                     st.session_state.summary = (
                         summary
                         if "\n\n" not in summary
                         else summary.replace("\n\n", "\n")
                     )
                     st.session_state.recommendations = questions.replace("\n\n", "\n")
-                    st.session_state.language = summary_data.get("language", "")
-                    st.session_state.transcript = summary_data.get("script", [])
+                    st.session_state.language = result.get("language", "")
+                    st.session_state.transcript = result.result("script", [])
                 else:
                     st.error("스크립트 요약에 실패했습니다.")
         if st.session_state.summary:

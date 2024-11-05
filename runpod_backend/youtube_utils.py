@@ -1,23 +1,40 @@
 from pytubefix import YouTube
 import re
+import os
+from config import backup_data
 
+
+CURRENT_DIR = os.getcwd()
 
 class YouTubeService:
-    async def get_title_and_hashtags(self, url: str):
+    async def get_video_data(self, url: str, url_id: str):
+        # 해당 url_id로 저장된 데이터가 있는지 확인
+        if os.path.isdir(os.path.join(CURRENT_DIR, f"data/{url_id}")):
+            saved_data = backup_data.get(url_id)
+            return saved_data
+
+        # YouTube 인스턴스 생성 및 데이터 추출
         yt = await self._create_youtube_instance(url)
         print("영상 정보 확인")
+
+        # title과 hashtags 추출 및 저장
         title = yt.title
         description = yt.description
         hashtags = re.findall(r"#\w+", description)
-        return {"title": title, "hashtags": " ".join(hashtags)}
+        if len(hashtags) > 5:
+            hashtags = hashtags[:5]
+        hashtags = " ".join(re.findall(r"#\w+", description))
+        backup_data.add_title_and_hashtags(url_id, title, hashtags)
 
-    async def get_video_info(self, url: str):
-        yt = await self._create_youtube_instance(url)
+        # audio_url 추출 및 저장
         audio_stream = yt.streams.filter(only_audio=True).first()
-        print("음성 추출 완료")
+        audio_url = audio_stream.url if audio_stream else None
+        backup_data.add_data(url_id, "audio_url",audio_url)
+
+        # 최종 데이터 반환
         return {
-            "title": yt.title,
-            "audio_url": audio_stream.url if audio_stream else None,
+            "title_hashtags": {"title":title,"hashtags": hashtags},
+            "audio_url": audio_url,
         }
 
     async def _create_youtube_instance(self, url: str):

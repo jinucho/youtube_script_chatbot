@@ -7,19 +7,21 @@ from typing import Any, Dict, List
 import ffmpeg
 import requests
 import soundfile as sf
+from config import backup_data
 from faster_whisper import BatchedInferencePipeline, WhisperModel
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from konlpy.tag import Okt
 
 class WhisperTranscriptionService:
-    def __init__(self):
+    def __init__(self,url_id):
         model = WhisperModel(
             "large-v3", device='cuda', compute_type="float16"
         )
         self.model = BatchedInferencePipeline(model=model)
         self.language = None
         self.okt = Okt()
+        self.url_id = url_id
         print("Whisper 모델 초기화 완료")
 
     def create_session(self):
@@ -219,7 +221,7 @@ class WhisperTranscriptionService:
 
         return all_segments
 
-    async def transcribe(self, audio_url: str,prompt: dict = None) -> Dict[str, Any]:
+    async def transcribe(self, audio_url: str,prompt: dict = None,url_id: str = None) -> Dict[str, Any]:
         try:
             try:
                 tagged = self.okt.pos(prompt.get("title",""))
@@ -229,12 +231,15 @@ class WhisperTranscriptionService:
                         filtered_words.append(word)
             except:
                 filtered_words = None
+            script_info = backup_data.get(url_id=url_id).get("script_info","")
+            if script_info:
+                return {"script": script_info.get("script"), "language": script_info.get("language")}
             segments = await self.process_with_progress(
                 audio_url, prompt, filtered_words,chunk_duration=30, num_download_chunks=10
             )
 
             print("텍스트 추출 완료")
-
+            backup_data.add_data(url_id=url_id, type="script_info",data = {"script": segments, "language": self.language} )
             return {"script": segments, "language": self.language}
         except Exception as e:
             print(f"Error in transcribe: {str(e)}")
