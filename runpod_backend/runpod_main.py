@@ -60,7 +60,8 @@ async def get_title_hash(url: str, url_id: str, youtube_service: YouTubeService)
 
     logger.info(f"Received URL in get_title_hash: {url}")
     try:
-        title_and_hashtags = await youtube_service.get_video_data(url, url_id)
+        video_data = await youtube_service.get_video_data(url, url_id)
+        title_and_hashtags = video_data.get("title_hashtags", "")
         logger.info(f"Title and Hashtags for URL {url}: {title_and_hashtags}")
         return title_and_hashtags
     except Exception as e:
@@ -148,7 +149,6 @@ def runpod_handler(event):
         youtube_service, whisper_service, langchain_service = (
             await get_service_instances(session_id)
         )
-
         try:
             if endpoint == "rag_stream_chat":
                 prompt = request_data.get("prompt")

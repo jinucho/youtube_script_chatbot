@@ -6,12 +6,19 @@ from config import backup_data
 
 CURRENT_DIR = os.getcwd()
 
+
 class YouTubeService:
     async def get_video_data(self, url: str, url_id: str):
         # 해당 url_id로 저장된 데이터가 있는지 확인
         if os.path.isdir(os.path.join(CURRENT_DIR, f"data/{url_id}")):
             saved_data = backup_data.get(url_id)
-            return saved_data
+            title = saved_data.get("title", "")
+            hashtags = saved_data.get("hashtags", "")
+            audio_url = saved_data.get("audio_url", "")
+            return {
+                "title_hashtags": {"title": title, "hashtags": hashtags},
+                "audio_url": audio_url,
+            }
 
         # YouTube 인스턴스 생성 및 데이터 추출
         yt = await self._create_youtube_instance(url)
@@ -29,11 +36,11 @@ class YouTubeService:
         # audio_url 추출 및 저장
         audio_stream = yt.streams.filter(only_audio=True).first()
         audio_url = audio_stream.url if audio_stream else None
-        backup_data.add_data(url_id, "audio_url",audio_url)
+        backup_data.add_data(url_id, "audio_url", audio_url)
 
         # 최종 데이터 반환
         return {
-            "title_hashtags": {"title":title,"hashtags": hashtags},
+            "title_hashtags": {"title": title, "hashtags": hashtags},
             "audio_url": audio_url,
         }
 
