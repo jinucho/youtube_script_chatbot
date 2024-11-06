@@ -15,7 +15,6 @@ from langchain.retrievers import BM25Retriever, EnsembleRetriever
 from langchain.schema.output_parser import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS
-from langchain_core.pydantic_v1 import BaseModel, Field
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
@@ -124,10 +123,11 @@ class LangChainService:
             Document(page_content="\n".join([t["text"] for t in transcript["script"]]))
         ]
         summary_info = backup_data.get(url_id=url_id).get("summary", "")
+        self.QUESTIONS = backup_data.get(url_id=url_id).get("questions", "")
         if summary_info:
             self.SUMMARY_RESULT = summary_info
             await self.prepare_retriever(url_id)
-            return self.SUMMARY_RESULT
+            return self.SUMMARY_RESULT, self.QUESTIONS
         total_tokens = calculate_tokens(self.documents[0].page_content)
 
         partial_summary_chain = create_stuff_documents_chain(
@@ -186,7 +186,7 @@ class LangChainService:
             vec_store = None
             if os.path.isdir(f"data/{url_id}"):
                 vec_store = FAISS.load_local(
-                    f"/runpod_volume/data/{url_id}",
+                    f"/runpod-volume/data/{url_id}",
                     self.hf_embeddings,
                     allow_dangerous_deserialization=True,
                 )

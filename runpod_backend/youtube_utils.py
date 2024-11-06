@@ -4,13 +4,13 @@ import os
 from config import backup_data
 
 
-CURRENT_DIR = os.getcwd()
+BACKUP_DIR = "/runpod-volume"
 
 
 class YouTubeService:
     async def get_video_data(self, url: str, url_id: str):
         # 해당 url_id로 저장된 데이터가 있는지 확인
-        if os.path.isdir(os.path.join(CURRENT_DIR, f"data/{url_id}")):
+        if os.path.isdir(os.path.join(BACKUP_DIR, f"data/{url_id}")):
             saved_data = backup_data.get(url_id)
             title = saved_data.get("title", "")
             hashtags = saved_data.get("hashtags", "")

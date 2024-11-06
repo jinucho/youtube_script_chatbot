@@ -4,7 +4,6 @@ import os
 import warnings
 
 import runpod
-from config import backup_data
 from langchain_utils import LangChainService
 from whisper_transcription import WhisperTranscriptionService
 from youtube_utils import YouTubeService
