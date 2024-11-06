@@ -1,4 +1,5 @@
 import os
+import re
 import smtplib
 import time
 from datetime import datetime, timedelta, timezone
@@ -18,6 +19,14 @@ HEADERS = {
     "Authorization": f"Bearer {RUNPOD_API_KEY}",
     "Content-Type": "application/json",
 }
+
+
+def get_video_id(url):
+    # 정규식을 통해 다양한 유튜브 링크에서 ID 추출
+    match = re.search(
+        r"(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|v/|.+\?v=))([^&=%\?]{11})", url
+    )
+    return match.group(1) if match else None
 
 
 def get_current_time():

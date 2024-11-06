@@ -7,8 +7,8 @@ from utils import (
     check_runpod_status,
     create_downloadable_file,
     get_current_time,
-    send_feedback_email,
     get_video_id,
+    send_feedback_email,
 )
 
 # Streamlit 웹 애플리케이션 설정
@@ -178,11 +178,12 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                     result = summary_response.get("output", {})
                     summary = result.get("summary_result", "없음")
                     questions = result.get("recommended_questions", "")
-                    st.session_state.summary = (
-                        summary
-                        if "\n\n" not in summary
-                        else summary.replace("\n\n", "\n")
-                    )
+                    # st.session_state.summary = (
+                    #     summary
+                    #     if "\n\n" not in summary
+                    #     else summary.replace("\n\n", "\n")
+                    # )
+                    st.session_state.summary = summary
                     st.session_state.recommendations = questions.replace("\n\n", "\n")
                     st.session_state.language = result.get("language", "")
                     st.session_state.transcript = result.get("script", [])
@@ -190,6 +191,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                     st.error("스크립트 요약에 실패했습니다.")
         if st.session_state.summary:
             st.subheader("요약내용")
+            st.write(st.session_state.summary)
 
             transcript_expander = st.expander("스크립트 보기", expanded=False)
             with transcript_expander:

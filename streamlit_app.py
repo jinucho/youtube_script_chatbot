@@ -7,6 +7,7 @@ from utils import (
     check_runpod_status,
     create_downloadable_file,
     get_current_time,
+    get_video_id,
     send_feedback_email,
 )
 
@@ -64,14 +65,14 @@ def reset_session_state():
 initialize_session_state()
 
 
-def process_chat_response(prompt, message_placeholder):
+def process_chat_response(prompt, url_id, message_placeholder):
     """AI 응답을 스트리밍 방식으로 처리"""
     bot_message = ""
     payload = {
         "input": {
             "endpoint": "rag_stream_chat",
             "headers": {"x-session-id": st.session_state.session_id},
-            "params": {"prompt": prompt},
+            "params": {"prompt": prompt, "url_id": url_id},
         }
     }
 
@@ -105,7 +106,9 @@ def handle_question(question):
     # 봇 응답 생성
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
-        bot_message = process_chat_response(question, message_placeholder)
+        bot_message = process_chat_response(
+            question, st.session_state.video_id, message_placeholder
+        )
 
         if bot_message:
             final_message = f"{bot_message} ({current_time})"
@@ -130,17 +133,17 @@ if st.button("스크립트 추출"):
         if "youtu" not in url:
             st.warning("유효한 유튜브 URL을 입력하세요.")
         else:
+            st.session_state.video_id = get_video_id(url)
             # get_title_hash 엔드포인트 호출
             payload = {
                 "input": {
                     "endpoint": "get_title_hash",
-                    "params": {"url": url},
+                    "params": {"url": url, "url_id": st.session_state.video_id},
                 }
             }
             data = check_runpod_status(payload)
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
-            st.session_state.video_id = url.split("/")[-1]
             st.rerun()  # 기본 정보를 표시하기 위한 리런
 
 if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아웃 표시
@@ -157,7 +160,6 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 f"allowfullscreen></iframe>",
                 unsafe_allow_html=True,
             )
-
         if not st.session_state.summary:
             with st.spinner("요약 중입니다..."):
                 # get_script_summary 엔드포인트 호출
@@ -165,7 +167,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                     "input": {
                         "endpoint": "get_script_summary",
                         "headers": {"x-session-id": st.session_state.session_id},
-                        "params": {"url": url},
+                        "params": {"url": url, "url_id": st.session_state.video_id},
                     }
                 }
 
@@ -173,24 +175,18 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 summary_response = check_runpod_status(payload)
 
                 if summary_response:
-                    summary_data = summary_response.get("output", {})
-                    summary_result = summary_data.get("summary_result", "")
-                    summary = (
-                        summary_result.split("[FINAL SUMMARY]")[1]
-                        .split("[RECOMMEND QUESTIONS]")[0]
-                        .strip("\n\n")
-                    )
-                    questions = summary_result.split("[FINAL SUMMARY]")[1].split(
-                        "[RECOMMEND QUESTIONS]"
-                    )[1]
-                    st.session_state.summary = (
-                        summary
-                        if "\n\n" not in summary
-                        else summary.replace("\n\n", "\n")
-                    )
+                    result = summary_response.get("output", {})
+                    summary = result.get("summary_result", "없음")
+                    questions = result.get("recommended_questions", "")
+                    # st.session_state.summary = (
+                    #     summary
+                    #     if "\n\n" not in summary
+                    #     else summary.replace("\n\n", "\n")
+                    # )
+                    st.session_state.summary = summary
                     st.session_state.recommendations = questions.replace("\n\n", "\n")
-                    st.session_state.language = summary_data.get("language", "")
-                    st.session_state.transcript = summary_data.get("script", [])
+                    st.session_state.language = result.get("language", "")
+                    st.session_state.transcript = result.get("script", [])
                 else:
                     st.error("스크립트 요약에 실패했습니다.")
         if st.session_state.summary:
@@ -260,7 +256,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                         " ("
                     )[0]
                     bot_message = process_chat_response(
-                        last_question, message_placeholder
+                        last_question, st.session_state.video_id, message_placeholder
                     )
 
                     if bot_message:

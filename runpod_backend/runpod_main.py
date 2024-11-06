@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import stat
 import warnings
 
 import runpod
@@ -22,9 +23,28 @@ youtube_service_instance = None
 whisper_service_instance = None
 langchain_service_cache = {}
 
-CURRENT_DIR = "/runpod-volume"
+# 볼륨 디렉토리 권한 설정
+VOLUME_PATH = "/runpod-volume"
+DATA_PATH = os.path.join(VOLUME_PATH, "data")
 
-os.makedirs(os.path.join(CURRENT_DIR, "data"), exist_ok=True)
+
+def setup_volume():
+    try:
+        # data 디렉토리가 없으면 생성
+        os.makedirs(DATA_PATH, exist_ok=True)
+
+        # 권한 설정
+        os.chmod(
+            VOLUME_PATH, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH
+        )  # 755
+        os.chmod(
+            DATA_PATH, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH
+        )  # 755
+
+        logger.info(f"Successfully set up volume directories and permissions")
+    except Exception as e:
+        logger.error(f"Error setting up volume: {e}")
+        raise
 
 
 # 서비스 인스턴스를 비동기적으로 관리하는 함수
@@ -193,6 +213,7 @@ def runpod_handler(event):
 
 
 if __name__ == "__main__":
+    setup_volume()
     runpod.serverless.start(
         {
             "handler": runpod_handler,
