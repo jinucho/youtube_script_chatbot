@@ -99,21 +99,17 @@ def send_feedback_email(feedback, session_id):
 
 def create_downloadable_file(session_state):
     # 텍스트 파일로 저장할 내용 구성
-    title = f"제목: {session_state.title}\n"
-    hashtags = f"해시태그: {session_state.hashtags}\n"
+    title = f"제목: {session_state.title}"
+    hashtags = f"해시태그: {session_state.hashtags}"
 
-    summary = f"\n[요약]\n{session_state.summary}\n"
+    summary = f"\n[요약]\n{session_state.summary}"
 
     # 스크립트를 텍스트로 변환
-    transcript = (
-        "[스크립트]\n"
-        + "\n".join(
-            [
-                f"{item['start']}초 - {item['end']}초: {item['text']}"
-                for item in session_state.transcript
-            ]
-        )
-        + "\n"
+    transcript = "[스크립트]\n" + "\n".join(
+        [
+            f"{item['start']}초 - {item['end']}초: {item['text']}"
+            for item in session_state.transcript
+        ]
     )
 
     # 채팅 내역을 텍스트로 변환
@@ -125,7 +121,7 @@ def create_downloadable_file(session_state):
     )
 
     # 모든 내용을 하나의 문자열로 결합
-    data = title + hashtags + summary + transcript + chat_history
+    data = f"{title}\n{hashtags}\n\n{summary}\n\n{transcript}\n\n{chat_history}"
 
     # 텍스트 파일을 바이트 형식으로 변환
     file_buffer = BytesIO()
