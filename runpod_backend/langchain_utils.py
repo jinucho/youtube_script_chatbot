@@ -159,23 +159,17 @@ class LangChainService:
             backup_data.add_data(
                 url_id=url_id, type="summary", data=self.SUMMARY_RESULT
             )
-            backup_data.add_data(
-                url_id=url_id, type="questions", data=self.QUESTIONS
-            )
+            backup_data.add_data(url_id=url_id, type="questions", data=self.QUESTIONS)
             await self.prepare_retriever(url_id)
             return self.SUMMARY_RESULT, self.QUESTIONS
         else:
-            result = await final_summary_chain.ainvoke(
-                {"context": self.documents}
-            )
+            result = await final_summary_chain.ainvoke({"context": self.documents})
             print("최종 요약 완료")
             self.SUMMARY_RESULT, self.QUESTIONS = custom_parser(result)
             backup_data.add_data(
                 url_id=url_id, type="summary", data=self.SUMMARY_RESULT
             )
-            backup_data.add_data(
-                url_id=url_id, type="questions", data=self.QUESTIONS
-            )
+            backup_data.add_data(url_id=url_id, type="questions", data=self.QUESTIONS)
             await self.prepare_retriever(url_id)
             return self.SUMMARY_RESULT, self.QUESTIONS
 
@@ -192,13 +186,13 @@ class LangChainService:
             vec_store = None
             if os.path.isdir(f"data/{url_id}"):
                 vec_store = FAISS.load_local(
-                    f"data/{url_id}",
+                    f"/runpod_volume/data/{url_id}",
                     self.hf_embeddings,
                     allow_dangerous_deserialization=True,
                 )
             else:
                 vec_store = FAISS.from_documents(split_docs, self.hf_embeddings)
-                vec_store.save_local(f"data/{url_id}")
+                vec_store.save_local(f"/runpod_volume/data/{url_id}")
             bm25_retriever = BM25Retriever.from_documents(split_docs)
             bm25_retriever.k = 10
             vec_retriever = vec_store.as_retriever(search_kwargs={"k": 10})

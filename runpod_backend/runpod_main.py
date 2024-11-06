@@ -23,7 +23,7 @@ youtube_service_instance = None
 whisper_service_instance = None
 langchain_service_cache = {}
 
-CURRENT_DIR = os.getcwd()
+CURRENT_DIR = "/runpod-volume"
 
 os.makedirs(os.path.join(CURRENT_DIR, "data"), exist_ok=True)
 

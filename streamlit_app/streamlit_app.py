@@ -142,7 +142,6 @@ if st.button("스크립트 추출"):
                 }
             }
             data = check_runpod_status(payload)
-            st.write(data)
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
             st.rerun()  # 기본 정보를 표시하기 위한 리런
@@ -177,7 +176,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
 
                 if summary_response:
                     result = summary_response.get("output", {})
-                    summary = result.get("summary_result", "")
+                    summary = result.get("summary_result", "없음")
                     questions = result.get("recommended_questions", "")
                     st.session_state.summary = (
                         summary
@@ -186,12 +185,11 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                     )
                     st.session_state.recommendations = questions.replace("\n\n", "\n")
                     st.session_state.language = result.get("language", "")
-                    st.session_state.transcript = result.result("script", [])
+                    st.session_state.transcript = result.get("script", [])
                 else:
                     st.error("스크립트 요약에 실패했습니다.")
         if st.session_state.summary:
             st.subheader("요약내용")
-            st.write(st.session_state.summary)
 
             transcript_expander = st.expander("스크립트 보기", expanded=False)
             with transcript_expander:
@@ -256,7 +254,7 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                         " ("
                     )[0]
                     bot_message = process_chat_response(
-                        last_question, message_placeholder
+                        last_question, st.session_state.video_id, message_placeholder
                     )
 
                     if bot_message:

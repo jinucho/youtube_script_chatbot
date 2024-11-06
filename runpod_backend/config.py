@@ -6,11 +6,12 @@ import json
 
 load_dotenv()
 
+
 class BackupData:
-    def __init__(self, file_path='data/backup.json'):
+    def __init__(self, file_path="/runpod-volume/data/backup.json"):
         self.file_path = file_path
         try:
-            with open(self.file_path, 'r', encoding='utf-8') as file:
+            with open(self.file_path, "r", encoding="utf-8") as file:
                 self.data = json.load(file)
         except FileNotFoundError:
             self.data = {}  # 파일이 없을 경우 빈 딕셔너리로 초기화
@@ -19,13 +20,10 @@ class BackupData:
         # url_id별로 title과 hashtags를 추가하거나 업데이트
         if url_id not in self.data:
             self.data[url_id] = {}
-        self.data[url_id].update({
-            'title': title,
-            'hashtags': hashtags
-        })
+        self.data[url_id].update({"title": title, "hashtags": hashtags})
         self._save_data()
 
-    def add_data(self, url_id, type,data):
+    def add_data(self, url_id, type, data):
         # url_id별로 audio_url을 따로 추가하거나 업데이트
         if url_id not in self.data:
             self.data[url_id] = {}
@@ -38,15 +36,16 @@ class BackupData:
 
     def _save_data(self):
         # JSON 파일에 데이터를 저장하는 내부 메서드
-        with open(self.file_path, 'w', encoding='utf-8') as file:
+        with open(self.file_path, "w", encoding="utf-8") as file:
             json.dump(self.data, file, ensure_ascii=False, indent=4)
 
+
 def custom_parser(text):
-    summary = text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[0].strip("\n\n")
+    summary = (
+        text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[0].strip("\n\n")
+    )
     questions = text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[1]
     return summary, questions
-    
-
 
 
 class Settings(BaseSettings):
