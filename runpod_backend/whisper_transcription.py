@@ -7,16 +7,17 @@ from typing import Any, Dict, List
 import ffmpeg
 import requests
 import soundfile as sf
-from config import backup_data
+from config import backup_data, settings
 from faster_whisper import BatchedInferencePipeline, WhisperModel
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from konlpy.tag import Okt
 
+
 class WhisperTranscriptionService:
-    def __init__(self,url_id):
+    def __init__(self, url_id):
         model = WhisperModel(
-            "large-v3", device='cuda', compute_type="float16"
+            "large-v3", device=settings.DEVICE, compute_type=settings.COMPUTE_TYPE
         )
         self.model = BatchedInferencePipeline(model=model)
         self.language = None
@@ -142,7 +143,9 @@ class WhisperTranscriptionService:
             print("FFmpeg error:", e.stderr.decode())
             return False
 
-    def process_audio_chunk(self, chunk_data: tuple,prompt:dict = None,filtered_words:list = None) -> List[Dict[str, Any]]:
+    def process_audio_chunk(
+        self, chunk_data: tuple, prompt: dict = None, filtered_words: list = None
+    ) -> List[Dict[str, Any]]:
         audio_path, start_time, duration = chunk_data
         try:
             segments, info = self.model.transcribe(
@@ -159,7 +162,7 @@ class WhisperTranscriptionService:
                 log_prob_threshold=-0.5,
                 no_speech_threshold=0.7,
                 patience=1.2,
-                hotwords=filtered_words
+                hotwords=filtered_words,
             )
             if info and hasattr(info, "language"):
                 self.language = info.language
@@ -183,7 +186,12 @@ class WhisperTranscriptionService:
         return transcript
 
     async def process_with_progress(
-        self, url: str, prompt:dict, filtered_words:str,chunk_duration: int = 30, num_download_chunks: int = 10
+        self,
+        url: str,
+        prompt: dict,
+        filtered_words: str,
+        chunk_duration: int = 30,
+        num_download_chunks: int = 10,
     ) -> List[Dict[str, Any]]:
         with tempfile.TemporaryDirectory() as temp_dir:
             mp4_path = self.parallel_download(url, temp_dir, num_download_chunks)
@@ -213,7 +221,7 @@ class WhisperTranscriptionService:
 
             all_segments = []
             for chunk_data in chunks_data:
-                segments = self.process_audio_chunk(chunk_data,prompt,filtered_words)
+                segments = self.process_audio_chunk(chunk_data, prompt, filtered_words)
                 all_segments.extend(segments)
 
                 if os.path.exists(chunk_data[0]):
@@ -221,25 +229,38 @@ class WhisperTranscriptionService:
 
         return all_segments
 
-    async def transcribe(self, audio_url: str,prompt: dict = None,url_id: str = None) -> Dict[str, Any]:
+    async def transcribe(
+        self, audio_url: str, prompt: dict = None, url_id: str = None
+    ) -> Dict[str, Any]:
         try:
             try:
-                tagged = self.okt.pos(prompt.get("title",""))
+                tagged = self.okt.pos(prompt.get("title", ""))
                 filtered_words = []
                 for word, tag in tagged:
                     if tag == "Noun" or tag == "Hashtag":
                         filtered_words.append(word)
             except:
                 filtered_words = None
-            script_info = backup_data.get(url_id=url_id).get("script_info","")
+            script_info = backup_data.get(url_id=url_id).get("script_info", "")
             if script_info:
-                return {"script": script_info.get("script"), "language": script_info.get("language")}
+                return {
+                    "script": script_info.get("script"),
+                    "language": script_info.get("language"),
+                }
             segments = await self.process_with_progress(
-                audio_url, prompt, filtered_words,chunk_duration=30, num_download_chunks=10
+                audio_url,
+                prompt,
+                filtered_words,
+                chunk_duration=30,
+                num_download_chunks=10,
             )
 
             print("텍스트 추출 완료")
-            backup_data.add_data(url_id=url_id, type="script_info",data = {"script": segments, "language": self.language} )
+            backup_data.add_data(
+                url_id=url_id,
+                type="script_info",
+                data={"script": segments, "language": self.language},
+            )
             return {"script": segments, "language": self.language}
         except Exception as e:
             print(f"Error in transcribe: {str(e)}")

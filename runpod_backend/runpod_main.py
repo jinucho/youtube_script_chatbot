@@ -5,6 +5,7 @@ import stat
 import warnings
 
 import runpod
+from config import settings
 from langchain_utils import LangChainService
 from whisper_transcription import WhisperTranscriptionService
 from youtube_utils import YouTubeService
@@ -23,9 +24,8 @@ youtube_service_instance = None
 whisper_service_instance = None
 langchain_service_cache = {}
 
-# 볼륨 디렉토리 권한 설정
-VOLUME_PATH = "/runpod-volume"
-DATA_PATH = os.path.join(VOLUME_PATH, "data")
+
+DATA_PATH = settings.DATA_PATH
 
 
 def setup_volume():

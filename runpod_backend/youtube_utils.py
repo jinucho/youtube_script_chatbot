@@ -1,16 +1,16 @@
 from pytubefix import YouTube
 import re
 import os
-from config import backup_data
+from config import backup_data, settings
 
 
-BACKUP_DIR = "/runpod-volume"
+DATA_PATH = settings.DATA_PATH
 
 
 class YouTubeService:
     async def get_video_data(self, url: str, url_id: str):
         # 해당 url_id로 저장된 데이터가 있는지 확인
-        if os.path.isdir(os.path.join(BACKUP_DIR, f"data/{url_id}")):
+        if os.path.isdir(os.path.join(DATA_PATH, f"{url_id}")):
             saved_data = backup_data.get(url_id)
             title = saved_data.get("title", "")
             hashtags = saved_data.get("hashtags", "")

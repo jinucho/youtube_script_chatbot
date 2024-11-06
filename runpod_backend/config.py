@@ -59,6 +59,12 @@ class Settings(BaseSettings):
     LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY")
     LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT")
 
+    MODEL_NAME = "BAAI/bge-m3"
+    ENCODE_KWARGS = {"normalize_embeddings": True}
+
+    VOLUME_PATH = "/runpod-volume"
+    DATA_PATH = os.path.join(VOLUME_PATH, "data")
+
     PARTIAL_SUMMARY_PROMPT_TEMPLATE: str = """Please summarize the sentence according to the following REQUEST.
     
                                             REQUEST:

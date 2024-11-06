@@ -1,5 +1,5 @@
 # # 기본 이미지 설정
-FROM nvidia/cuda:12.1.0-cudnn8-devel-ubuntu22.04
+FROM nvidia/cuda:12.1.0-cudnn8-runtime-ubuntu22.04
 
 # 작업 디렉토리 설정
 WORKDIR /app

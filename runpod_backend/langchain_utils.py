@@ -38,9 +38,9 @@ os.environ["LANGCHAIN_PROJECT"] = settings.LANGCHAIN_PROJECT or ""
 
 MAX_TOKENS = 4096
 
-model_name = "BAAI/bge-m3"
-model_kwargs = {"device": "cuda"}
-encode_kwargs = {"normalize_embeddings": True}
+model_name = settings.MODEL_NAME
+model_kwargs = {"device": settings.DEVICE}
+encode_kwargs = settings.ENCODE_KWARGS
 
 
 class LangChainService:
@@ -184,7 +184,7 @@ class LangChainService:
             split_docs = self.text_splitter.split_documents(self.documents)
             print(f"Split_docs = {split_docs[0]}")
             vec_store = None
-            if os.path.isdir(f"/runpod-volume/data/{url_id}"):
+            if os.path.isdir(f"{settings.DATA_PATH}/{url_id}"):
                 vec_store = FAISS.load_local(
                     f"/runpod-volume/data/{url_id}",
                     self.hf_embeddings,
@@ -192,7 +192,7 @@ class LangChainService:
                 )
             else:
                 vec_store = FAISS.from_documents(split_docs, self.hf_embeddings)
-                vec_store.save_local(f"/runpod-volume/data/{url_id}")
+                vec_store.save_local(f"{settings.DATA_PATH}/{url_id}")
             bm25_retriever = BM25Retriever.from_documents(split_docs)
             bm25_retriever.k = 10
             vec_retriever = vec_store.as_retriever(search_kwargs={"k": 10})
