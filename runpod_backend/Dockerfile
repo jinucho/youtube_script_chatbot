@@ -11,6 +11,9 @@ ENV LD_LIBRARY_PATH="/usr/local/cuda/lib64:/usr/lib/x86_64-linux-gnu:$LD_LIBRARY
 ENV CUDA_HOME="/usr/local/cuda"
 
 # NVIDIA 저장소 및 키 설정
+
+RUN apt-get clean && rm -rf /var/lib/apt/lists/* && apt-get update
+
 RUN rm /etc/apt/sources.list.d/cuda-ubuntu2204-x86_64.list && \
     apt-get update && apt-get install -y --no-install-recommends \
     wget \

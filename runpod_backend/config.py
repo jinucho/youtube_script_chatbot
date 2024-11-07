@@ -99,7 +99,7 @@ class Settings(BaseSettings):
                                             YOUR RESPONSE MUST FOLLOW THIS EXACT FORMAT:
 
                                             [FINAL SUMMARY]
-                                            Key topic: [Key topic]
+                                            Key topic: [Key topic]\n
                                             • 🎯 First summary point\n
                                             • 📚 Second summary point\n
                                             • 💡 Third summary point\n
