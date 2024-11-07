@@ -35,9 +35,6 @@ def setup_volume():
 
         # 권한 설정
         os.chmod(
-            VOLUME_PATH, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH
-        )  # 755
-        os.chmod(
             DATA_PATH, stat.S_IRWXU | stat.S_IRWXG | stat.S_IROTH | stat.S_IXOTH
         )  # 755
 

@@ -6,9 +6,11 @@ import json
 
 load_dotenv()
 
+VOLUME_PATH = "/runpod-volume"
+DATA_PATH = os.path.join(VOLUME_PATH, "data")
 
 class BackupData:
-    def __init__(self, file_path="/runpod-volume/data/backup.json"):
+    def __init__(self, file_path=f"{DATA_PATH}/backup.json"):
         self.file_path = file_path
         try:
             with open(self.file_path, "r", encoding="utf-8") as file:
@@ -59,11 +61,10 @@ class Settings(BaseSettings):
     LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY")
     LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT")
 
-    MODEL_NAME = "BAAI/bge-m3"
-    ENCODE_KWARGS = {"normalize_embeddings": True}
+    MODEL_NAME:str = "BAAI/bge-m3"
+    ENCODE_KWARGS:dict = {"normalize_embeddings": True}
 
-    VOLUME_PATH = "/runpod-volume"
-    DATA_PATH = os.path.join(VOLUME_PATH, "data")
+    DATA_PATH:str = DATA_PATH
 
     PARTIAL_SUMMARY_PROMPT_TEMPLATE: str = """Please summarize the sentence according to the following REQUEST.
     
