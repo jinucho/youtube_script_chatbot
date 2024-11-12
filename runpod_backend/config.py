@@ -6,7 +6,8 @@ import json
 
 load_dotenv()
 
-VOLUME_PATH = "/runpod-volume"
+# VOLUME_PATH = "/runpod-volume"
+VOLUME_PATH = ""
 DATA_PATH = os.path.join(VOLUME_PATH, "data")
 
 class BackupData:
