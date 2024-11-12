@@ -75,13 +75,15 @@ class LangChainService:
         )
         # self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7, streaming=True)
         self.llm = VLLM(
-                    model="NCSOFT/Llama-VARCO-8B-Instruct",
+                    # model="NCSOFT/Llama-VARCO-8B-Instruct",
+                    model="beomi/Qwen2.5-7B-Instruct-kowiki-qa-context",
                     trust_remote_code=True,  # Hugging Face 모델의 경우 필수
                     max_new_tokens=512,
                     top_k=1,
                     top_p=0.9,
                     temperature=0.5,
-                    dtype = "bfloat16")
+                    dtype = "bfloat16",
+                    gpu_memory_utilization = 0.5)
         self.retriever = None
         self.is_prepared = False
         self.SUMMARY_RESULT = ""
