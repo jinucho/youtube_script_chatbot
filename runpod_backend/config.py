@@ -68,18 +68,18 @@ class Settings(BaseSettings):
     DATA_PATH:str = DATA_PATH
 
     PARTIAL_SUMMARY_PROMPT_TEMPLATE: str = """Please summarize the sentence according to the following REQUEST.
+                                            This task is partial summay, Please Do not summarize too much.
     
                                             REQUEST:
-                                            1. Summarize the main points in bullet points in KOREAN.
-                                            2. Each summarized sentence must start with an emoji that fits the meaning of the each sentence.
-                                            3. Use various emojis to make the summary more interesting.
-                                            4. Translate the summary into KOREAN if it is written in ENGLISH.
-                                            5. DO NOT translate any technical terms.\n6. DO NOT include any unnecessary information.
+                                            1. Summarize the main points in KOREAN.
+                                            2. Translate the summary into KOREAN if it is written in ENGLISH.
+                                            3. DO NOT translate any technical terms.
+                                            4. DO NOT include any unnecessary information.
                                             
                                             CONTEXT:
                                             {context}
                                             
-                                            SUMMARY:"
+                                            SUMMARY:
                                             """
     FINAL_SUMMARY_PROMPT_TEMPLATE: str = """Please summarize the sentence according to the following FINAL REQUEST and provide the output EXACTLY as shown in the example format below. Do not modify the section headers or format in any way.
 

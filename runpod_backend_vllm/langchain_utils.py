@@ -19,6 +19,7 @@ from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_community.llms import VLLM
 
 def calculate_tokens(text, model="gpt-4o-mini"):
     encoding = tiktoken.encoding_for_model(model)
@@ -72,7 +73,17 @@ class LangChainService:
         self.final_summary_prompt = PromptTemplate.from_template(
             settings.FINAL_SUMMARY_PROMPT_TEMPLATE
         )
-        self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7, streaming=True)
+        # self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7, streaming=True)
+        self.llm = VLLM(
+                    # model="NCSOFT/Llama-VARCO-8B-Instruct",
+                    model="beomi/Qwen2.5-7B-Instruct-kowiki-qa-context",
+                    trust_remote_code=True,  # Hugging Face 모델의 경우 필수
+                    max_new_tokens=512,
+                    top_k=1,
+                    top_p=0.9,
+                    temperature=0.5,
+                    dtype = "bfloat16",
+                    gpu_memory_utilization = 0.5)
         self.retriever = None
         self.is_prepared = False
         self.SUMMARY_RESULT = ""
