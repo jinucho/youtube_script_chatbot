@@ -178,13 +178,8 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                     result = summary_response.get("output", {})
                     summary = result.get("summary_result", "없음")
                     questions = result.get("recommended_questions", "")
-                    # st.session_state.summary = (
-                    #     summary
-                    #     if "\n\n" not in summary
-                    #     else summary.replace("\n\n", "\n")
-                    # )
                     st.session_state.summary = summary
-                    st.session_state.recommendations = questions.replace("\n\n", "\n")
+                    st.session_state.recommendations = questions
                     st.session_state.language = result.get("language", "")
                     st.session_state.transcript = result.get("script", [])
                 else:
