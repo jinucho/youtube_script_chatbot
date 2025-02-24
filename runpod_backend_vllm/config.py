@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings
+from pydantic import BaseModel, Field
 import torch
 from dotenv import load_dotenv
 import os
@@ -9,6 +10,26 @@ load_dotenv()
 # VOLUME_PATH = "/runpod-volume"
 VOLUME_PATH = ""
 DATA_PATH = os.path.join(VOLUME_PATH, "data")
+
+
+from pydantic import BaseModel, Field
+from typing import List
+
+class Summary(BaseModel):
+    emoji: str = Field(..., description="요약에 사용하는 이모지")
+    content: str = Field(..., description="요약된 내용")
+
+class FinalSummary(BaseModel):
+    key_topic: str = Field(..., description="주요 주제 내용")
+    summaries: List[Summary] = Field(..., description="요약된 내용 리스트")
+
+class RecommendQuestions(BaseModel):
+    questions: List[str] = Field(..., description="추천 질문 리스트")
+
+class FullStructure(BaseModel):
+    FINAL_SUMMARY: FinalSummary = Field(..., description="최종 요약 정보")
+    RECOMMEND_QUESTIONS: RecommendQuestions = Field(..., description="추천 질문 리스트")
+    
 
 class BackupData:
     def __init__(self, file_path=f"{DATA_PATH}/backup.json"):

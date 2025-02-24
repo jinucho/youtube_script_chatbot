@@ -46,4 +46,4 @@ class YouTubeService:
 
     async def _create_youtube_instance(self, url: str):
         print("YouTube 인스턴스 생성 완료")
-        return YouTube(url)
+        return YouTube(url, use_po_token=True) 

@@ -5,7 +5,7 @@ import warnings
 from operator import itemgetter
 
 import tiktoken
-from config import settings, backup_data, custom_parser
+from config import settings, backup_data, custom_parser, FullStructure
 from dotenv import load_dotenv
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chat_models import ChatOpenAI

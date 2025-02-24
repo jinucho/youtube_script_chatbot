@@ -5,7 +5,7 @@ import warnings
 from operator import itemgetter
 
 import tiktoken
-from config import settings, backup_data, custom_parser
+from config import settings, backup_data, custom_parser, FullStructure
 from dotenv import load_dotenv
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain.chat_models import ChatOpenAI
@@ -133,7 +133,7 @@ class LangChainService:
             self.llm, self.partial_summary_prompt
         )
         final_summary_chain = create_stuff_documents_chain(
-            llm=self.llm, prompt=self.final_summary_prompt
+            llm=self.llm, prompt=self.final_summary_prompt, output_parser=JsonOutputParser(pydantic_object=FullStructure)
         )
 
         if total_tokens > MAX_TOKENS:

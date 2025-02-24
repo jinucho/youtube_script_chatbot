@@ -1,4 +1,6 @@
 from pydantic_settings import BaseSettings
+from pydantic import BaseModel, Field
+from typing import List
 import torch
 from dotenv import load_dotenv
 import os
@@ -9,6 +11,22 @@ load_dotenv()
 # VOLUME_PATH = "/runpod-volume"
 VOLUME_PATH = ""
 DATA_PATH = os.path.join(VOLUME_PATH, "data")
+
+class Summary(BaseModel):
+    emoji: str = Field(..., description="요약에 사용하는 이모지")
+    content: str = Field(..., description="요약된 내용")
+
+class FinalSummary(BaseModel):
+    key_topic: str = Field(..., description="주요 주제 내용")
+    summaries: List[Summary] = Field(..., description="요약된 내용 리스트")
+
+class RecommendQuestions(BaseModel):
+    questions: List[str] = Field(..., description="추천 질문 리스트")
+
+class FullStructure(BaseModel):
+    FINAL_SUMMARY: FinalSummary = Field(..., description="최종 요약 정보")
+    RECOMMEND_QUESTIONS: RecommendQuestions = Field(..., description="추천 질문 리스트")
+
 
 class BackupData:
     def __init__(self, file_path=f"{DATA_PATH}/backup.json"):
@@ -43,11 +61,18 @@ class BackupData:
             json.dump(self.data, file, ensure_ascii=False, indent=4)
 
 
-def custom_parser(text):
+# def custom_parser(text):
+#     summary = (
+#         text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[0].strip("\n\n")
+#     )
+#     questions = text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[1]
+#     return summary, questions
+
+def custom_parser(result: dict):
     summary = (
-        text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[0].strip("\n\n")
+        result["FINAL_SUMMARY"].strip()
     )
-    questions = text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[1]
+    questions = result["RECOMMEND_QUESTIONS"].strip()
     return summary, questions
 
 
