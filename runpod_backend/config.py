@@ -13,12 +13,11 @@ VOLUME_PATH = ""
 DATA_PATH = os.path.join(VOLUME_PATH, "data")
 
 class Summary(BaseModel):
-    emoji: str = Field(..., description="요약에 사용하는 이모지")
     content: str = Field(..., description="요약된 내용")
 
 class FinalSummary(BaseModel):
     key_topic: str = Field(..., description="주요 주제 내용")
-    summaries: List[Summary] = Field(..., description="요약된 내용 리스트")
+    summaries: List[str] = Field(..., description="요약된 내용 리스트")
 
 class RecommendQuestions(BaseModel):
     questions: List[str] = Field(..., description="추천 질문 리스트")
@@ -60,20 +59,12 @@ class BackupData:
         with open(self.file_path, "w", encoding="utf-8") as file:
             json.dump(self.data, file, ensure_ascii=False, indent=4)
 
-
-# def custom_parser(text):
-#     summary = (
-#         text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[0].strip("\n\n")
-#     )
-#     questions = text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[1]
-#     return summary, questions
-
 def custom_parser(result: dict):
-    summary = (
-        result["FINAL_SUMMARY"].strip()
-    )
-    questions = result["RECOMMEND_QUESTIONS"].strip()
-    return summary, questions
+    key_topic = result["FINAL_SUMMARY"]["key_topic"]
+    summaries = result["FINAL_SUMMARY"]["summaries"]
+    summaries.insert(0, key_topic)
+    questions = result["RECOMMEND_QUESTIONS"]
+    return summaries, questions
 
 
 class Settings(BaseSettings):
@@ -108,42 +99,50 @@ class Settings(BaseSettings):
                                             """
     FINAL_SUMMARY_PROMPT_TEMPLATE: str = """Please summarize the sentence according to the following FINAL REQUEST and provide the output EXACTLY as shown in the example format below. Do not modify the section headers or format in any way.
 
-                                            FINAL REQUEST:
-                                            1. The provided summary sections are partial summaries of one document. Please combine them into a single cohesive summary.
-                                            2. If the content of the document is sufficient, please ensure the summary includes key details and is at least 10 summary points.
-                                            3. Summarize the main points in bullet points in KOREAN, but DO NOT translate any technical terms.
-                                            4. Each summarized sentence must start with a single emoji that fits the meaning of the sentence.
-                                            5. Use various emojis to make the summary more interesting, but keep it concise and relevant.
-                                            6. Focus on identifying and presenting only one main topic and one overall summary for the document.
-                                            7. Avoid redundant or repeated points, and ensure that the summary covers all key ideas without introducing multiple conclusions or topics.
-                                            8. Please refer to each summary and indicate the key topic.
-                                            9. If the original text is in English, we have already provided a summary translated into Korean, so please do not provide a separate translation.
-                                            10. Based on the summarized content, please create the three most relevant recommended questions.
+    FINAL REQUEST:
+    1. The provided summary sections are partial summaries of one document. Please combine them into a single cohesive summary.
+    2. If the content of the document is sufficient, please ensure the summary includes key details and is at least 10 summary points.
+    3. Summarize the main points in bullet points in KOREAN, but DO NOT translate any technical terms.
+    4. Each summarized sentence must start with a single emoji that fits the meaning of the sentence.
+    5. Use various emojis to make the summary more interesting, but keep it concise and relevant.
+    6. Focus on identifying and presenting only one main topic and one overall summary for the document.
+    7. Avoid redundant or repeated points, and ensure that the summary covers all key ideas without introducing multiple conclusions or topics.
+    8. Please refer to each summary and indicate the key topic.
+    9. If the original text is in English, we have already provided a summary translated into Korean, so please do not provide a separate translation.
+    10. Based on the summarized content, please create the three most relevant recommended questions.
 
-                                            CONTEXT:
-                                            {context}
+    CONTEXT:
+    {context}
 
-                                            YOUR RESPONSE MUST FOLLOW THIS EXACT FORMAT:
+    YOUR RESPONSE MUST FOLLOW THIS EXACT FORMAT:
 
-                                            [FINAL SUMMARY]
-                                            Key topic: [Key topic]\n
-                                            • 🎯 First summary point\n
-                                            • 📚 Second summary point\n
-                                            • 💡 Third summary point\n
-                                            • ...
+    {{
+    "FINAL_SUMMARY": {{
+        "key_topic": "key topic",
+        "summaries": [
+        "🎯 First summary point.",
+        "📚 Second summary point.",
+        "💡 Third summary point.",
+        "... (at least 10 points)"
+        ]
+    }},
+    "RECOMMEND_QUESTIONS": [
+        "First question?",
+        "Second question?",
+        "Third question?"
+    ]
+    }}
 
-                                            [RECOMMEND QUESTIONS]
-                                            1. First question\n
-                                            2. Second question\n
-                                            3. Third question
+    IMPORTANT FORMATTING RULES:
+    - Use EXACTLY 'FINAL_SUMMARY' and 'RECOMMEND_QUESTIONS' as section headers
+    - Start each summary point with an emoji
+    - Do not number bullet points (use list format with strings)
+    - Number questions using simple strings inside a list
+    - Do not add any additional headers or sections
+    - Do not modify the format of the section headers
+    - Leave exactly one blank line between sections
+    """
 
-                                            IMPORTANT FORMATTING RULES:
-                                            - Use EXACTLY '[FINAL SUMMARY]' and '[RECOMMEND QUESTIONS]' as section headers
-                                            - Start each summary point with '• ' followed by an emoji
-                                            - Number questions with '1. ', '2. ', '3. '
-                                            - Do not add any additional headers or sections
-                                            - Do not modify the format of the section headers
-                                            - Leave exactly one blank line between sections"""
 
     class Config:
         env_file = ".env"

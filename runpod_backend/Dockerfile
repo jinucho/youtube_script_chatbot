@@ -52,7 +52,7 @@ ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 # pip 업그레이드 및 기본 패키지 설치
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# PyTorch 및 CUDA 12.1 설치
+# # PyTorch 및 CUDA 12.1 설치
 RUN pip install torch==2.4.1+cu121 torchaudio==2.4.1+cu121 --index-url https://download.pytorch.org/whl/cu121
 
 # 의존성 설치
@@ -60,7 +60,7 @@ COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Faster Whisper 및 관련 라이브러리 설치
-RUN pip install --no-cache-dir "faster-whisper @ https://github.com/SYSTRAN/faster-whisper/archive/refs/heads/master.tar.gz"
+# RUN pip install --no-cache-dir "faster-whisper @ https://github.com/SYSTRAN/faster-whisper/archive/refs/heads/master.tar.gz"
 
 # 다운로드 디렉토리 생성 및 권한 설정
 RUN mkdir -p /app/downloads && chmod -R 755 /app/downloads

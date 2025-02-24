@@ -8,16 +8,19 @@ import tiktoken
 from config import settings, backup_data, custom_parser, FullStructure
 from dotenv import load_dotenv
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.docstore.document import Document
 from langchain.prompts import PromptTemplate
-from langchain.retrievers import BM25Retriever, EnsembleRetriever
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers import EnsembleRetriever
 from langchain.schema.output_parser import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.output_parsers import JsonOutputParser
 from langchain_huggingface import HuggingFaceEmbeddings
 
 def calculate_tokens(text, model="gpt-4o-mini"):
@@ -177,7 +180,7 @@ class LangChainService:
             return
 
         try:
-            for line in self.SUMMARY_RESULT.strip().split("\n"):
+            for line in self.SUMMARY_RESULT:
                 self.documents[0].page_content += "\n" + line
 
             split_docs = self.text_splitter.split_documents(self.documents)
