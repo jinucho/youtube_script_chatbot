@@ -8,19 +8,23 @@ import json
 
 load_dotenv()
 
-# VOLUME_PATH = "/runpod-volume"
-VOLUME_PATH = ""
+VOLUME_PATH = "/runpod-volume"  # runpod serverless 배포 시 경로
+# VOLUME_PATH = "" #local 테스트 시 경로
 DATA_PATH = os.path.join(VOLUME_PATH, "data")
+
 
 class Summary(BaseModel):
     content: str = Field(..., description="요약된 내용")
+
 
 class FinalSummary(BaseModel):
     key_topic: str = Field(..., description="주요 주제 내용")
     summaries: List[str] = Field(..., description="요약된 내용 리스트")
 
+
 class RecommendQuestions(BaseModel):
     questions: List[str] = Field(..., description="추천 질문 리스트")
+
 
 class FullStructure(BaseModel):
     FINAL_SUMMARY: FinalSummary = Field(..., description="최종 요약 정보")
@@ -59,6 +63,7 @@ class BackupData:
         with open(self.file_path, "w", encoding="utf-8") as file:
             json.dump(self.data, file, ensure_ascii=False, indent=4)
 
+
 def custom_parser(result: dict):
     key_topic = result["FINAL_SUMMARY"]["key_topic"]
     summaries = result["FINAL_SUMMARY"]["summaries"]
@@ -78,10 +83,10 @@ class Settings(BaseSettings):
     LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY")
     LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT")
 
-    MODEL_NAME:str = "BAAI/bge-m3"
-    ENCODE_KWARGS:dict = {"normalize_embeddings": True}
+    MODEL_NAME: str = "BAAI/bge-m3"
+    ENCODE_KWARGS: dict = {"normalize_embeddings": True}
 
-    DATA_PATH:str = DATA_PATH
+    DATA_PATH: str = DATA_PATH
 
     PARTIAL_SUMMARY_PROMPT_TEMPLATE: str = """Please summarize the sentence according to the following REQUEST.
                                             This task is partial summay, Please Do not summarize too much.
@@ -142,7 +147,6 @@ class Settings(BaseSettings):
     - Do not modify the format of the section headers
     - Leave exactly one blank line between sections
     """
-
 
     class Config:
         env_file = ".env"
