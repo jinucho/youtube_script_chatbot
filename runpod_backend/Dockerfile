@@ -59,9 +59,6 @@ RUN pip install torch==2.4.1+cu121 torchaudio==2.4.1+cu121 --index-url https://d
 COPY requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Faster Whisper 및 관련 라이브러리 설치
-# RUN pip install --no-cache-dir "faster-whisper @ https://github.com/SYSTRAN/faster-whisper/archive/refs/heads/master.tar.gz"
-
 # 다운로드 디렉토리 생성 및 권한 설정
 RUN mkdir -p /app/downloads && chmod -R 755 /app/downloads
 
@@ -70,6 +67,7 @@ COPY . .
 
 # Whisper 모델 다운로드 및 초기화
 RUN python3 -c "from faster_whisper import WhisperModel; model = WhisperModel('large-v3')"
+RUN python3 -c "from langchain_huggingface import HuggingFaceEmbeddings; model = HuggingFaceEmbeddings(model_name='BAAI/bge-m3')"
 
 # 실행 명령
 CMD ["python", "runpod_main.py"]
