@@ -178,20 +178,17 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                     result = summary_response.get("output", {})
                     summary = result.get("summary_result", "없음")
                     questions = result.get("recommended_questions", "")
-                    # st.session_state.summary = (
-                    #     summary
-                    #     if "\n\n" not in summary
-                    #     else summary.replace("\n\n", "\n")
-                    # )
+                    summary[0] = f"KEY TOPIC : {summary[0]}"
                     st.session_state.summary = summary
-                    st.session_state.recommendations = questions.replace("\n\n", "\n")
+                    st.session_state.recommendations = questions
                     st.session_state.language = result.get("language", "")
                     st.session_state.transcript = result.get("script", [])
                 else:
                     st.error("스크립트 요약에 실패했습니다.")
         if st.session_state.summary:
             st.subheader("요약내용")
-            st.write(st.session_state.summary)
+            for summary in st.session_state.summary:
+                st.write(summary)
 
             transcript_expander = st.expander("스크립트 보기", expanded=False)
             with transcript_expander:
@@ -210,14 +207,8 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
             recommed_container = st.container(border=True)
             with recommed_container:
                 st.write("추천 질문(click):")
-                recommended_questions = [
-                    question.split(".")[1].strip()
-                    for question in st.session_state.recommendations.split("\n")[1:]
-                    if question.strip()
-                ]
-
                 # 각 질문에 대한 버튼 생성
-                for question in recommended_questions:
+                for question in st.session_state.recommendations:
                     if st.button(question, key=f"btn_{question}"):
                         st.session_state.messages.append(
                             {
