@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from pydantic import BaseModel, Field
+from typing import List
 import torch
 from dotenv import load_dotenv
 import os
@@ -7,29 +8,28 @@ import json
 
 load_dotenv()
 
-# VOLUME_PATH = "/runpod-volume"
-VOLUME_PATH = ""
+VOLUME_PATH = "/runpod-volume"  # runpod serverless 배포 시 경로
+# VOLUME_PATH = "" #local 테스트 시 경로
 DATA_PATH = os.path.join(VOLUME_PATH, "data")
 
 
-from pydantic import BaseModel, Field
-from typing import List
-
 class Summary(BaseModel):
-    emoji: str = Field(..., description="요약에 사용하는 이모지")
     content: str = Field(..., description="요약된 내용")
+
 
 class FinalSummary(BaseModel):
     key_topic: str = Field(..., description="주요 주제 내용")
-    summaries: List[Summary] = Field(..., description="요약된 내용 리스트")
+    summaries: List[str] = Field(..., description="요약된 내용 리스트")
+
 
 class RecommendQuestions(BaseModel):
     questions: List[str] = Field(..., description="추천 질문 리스트")
 
+
 class FullStructure(BaseModel):
     FINAL_SUMMARY: FinalSummary = Field(..., description="최종 요약 정보")
     RECOMMEND_QUESTIONS: RecommendQuestions = Field(..., description="추천 질문 리스트")
-    
+
 
 class BackupData:
     def __init__(self, file_path=f"{DATA_PATH}/backup.json"):
@@ -64,12 +64,12 @@ class BackupData:
             json.dump(self.data, file, ensure_ascii=False, indent=4)
 
 
-def custom_parser(text):
-    summary = (
-        text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[0].strip("\n\n")
-    )
-    questions = text.split("[FINAL SUMMARY]")[1].split("[RECOMMEND QUESTIONS]")[1]
-    return summary, questions
+def custom_parser(result: dict):
+    key_topic = result["FINAL_SUMMARY"]["key_topic"]
+    summaries = result["FINAL_SUMMARY"]["summaries"]
+    summaries.insert(0, key_topic)
+    questions = result["RECOMMEND_QUESTIONS"]
+    return summaries, questions
 
 
 class Settings(BaseSettings):
@@ -83,68 +83,70 @@ class Settings(BaseSettings):
     LANGCHAIN_API_KEY: str = os.getenv("LANGCHAIN_API_KEY")
     LANGCHAIN_PROJECT: str = os.getenv("LANGCHAIN_PROJECT")
 
-    MODEL_NAME:str = "BAAI/bge-m3"
-    ENCODE_KWARGS:dict = {"normalize_embeddings": True}
+    MODEL_NAME: str = "BAAI/bge-m3"
+    ENCODE_KWARGS: dict = {"normalize_embeddings": True}
 
-    DATA_PATH:str = DATA_PATH
+    DATA_PATH: str = DATA_PATH
 
-    PARTIAL_SUMMARY_PROMPT_TEMPLATE: str = """
-                                            다음 REQUEST에 따라 CONTEXT를 요약하고, 출력은 아래에 제공된 출력 형식(OUTPUT_FORMAT)과 정확히 동일하게 한 번만 작성해주세요.
-                                            이 작업은 부분 요약입니다, 너무 많이 요약하지 마세요.
+    PARTIAL_SUMMARY_PROMPT_TEMPLATE: str = """Please summarize the sentence according to the following REQUEST.
+                                            This task is partial summay, Please Do not summarize too much.
     
                                             REQUEST:
-                                            1. 주요 내용을 한국어로 요약하세요.
-                                            2. 기술, 전문 용어는 번역하지마세요.
-                                            3. 내용과 관계없는 불필요한 것은 추가하지 마세요.
+                                            1. Summarize the main points in KOREAN.
+                                            2. Translate the summary into KOREAN if it is written in ENGLISH.
+                                            3. DO NOT translate any technical terms.
+                                            4. DO NOT include any unnecessary information.
                                             
                                             CONTEXT:
                                             {context}
                                             
-                                            OUTPUT_FORMAT(JSON 형식):
-                                            {{
-                                            "PARTIAL_SUMMARY":["요약된 내용1",
-                                                                "요약된 내용2",
-                                                                "요약된 내용3",
-                                                                ...추가 요약 내용 나열]
-                                            }}
-                                            OUTPUT:
+                                            SUMMARY:
                                             """
-    FINAL_SUMMARY_PROMPT_TEMPLATE: str = """
-                                        다음 REQUEST에 따라 CONTEXT를 요약하고, 출력은 아래에 제공된 출력 형식(OUTPUT_FORMAT)과 정확히 동일하게 한 번만 작성해주세요.
+    FINAL_SUMMARY_PROMPT_TEMPLATE: str = """Please summarize the sentence according to the following FINAL REQUEST and provide the output EXACTLY as shown in the example format below. Do not modify the section headers or format in any way.
 
-                                        REQUEST:
-                                        1. 주어진 OUTPUT(JSON 형식) 외의 텍스트나 설명을 포함하지 마세요.
-                                        2. CONTEXT와 HUMAN MESSAGE는 출력하지마세요.
-                                        3. 단 하나의 OUTPUT만 출력하세요.
-                                        4. 주요 내용을 한국어로 요약하되, 전문, 기술 용어는 원본을 사용하세요.
-                                        5. 요약된 각 문장은 해당 의미와 잘 어울리는 이모지 하나로 시작해야 합니다.
-                                        6. 다양한 이모지를 사용하여 요약을 흥미롭게 작성하되, 간결하고 관련성 있게 유지하세요.
-                                        7. 문서의 단일 주요 주제와 전반적인 요약에만 집중하세요.
-                                        8. 각 요약에서 주요 주제를 명확히 나타내세요.
-                                        9. CONTEXT의 내용이 충분히 많다면, 요약 문장을 충분히 생성하세요.
-                                        10. 요약된 내용을 기반으로 가장 관련성 높은 세 가지 질문을 한국어로 작성하세요.
+    FINAL REQUEST:
+    1. The provided summary sections are partial summaries of one document. Please combine them into a single cohesive summary.
+    2. If the content of the document is sufficient, please ensure the summary includes key details and is at least 10 summary points.
+    3. Summarize the main points in bullet points in KOREAN, but DO NOT translate any technical terms.
+    4. Each summarized sentence must start with a single emoji that fits the meaning of the sentence.
+    5. Use various emojis to make the summary more interesting, but keep it concise and relevant.
+    6. Focus on identifying and presenting only one main topic and one overall summary for the document.
+    7. Avoid redundant or repeated points, and ensure that the summary covers all key ideas without introducing multiple conclusions or topics.
+    8. Please refer to each summary and indicate the key topic.
+    9. If the original text is in English, we have already provided a summary translated into Korean, so please do not provide a separate translation.
+    10. Based on the summarized content, please create the three most relevant recommended questions.
 
-                                        CONTEXT:
-                                        {context}
+    CONTEXT:
+    {context}
 
-                                        OUTPUT_FORMAT(JSON 형식):
-                                        {{
-                                            "FINAL_SUMMARY": {{
-                                                "Key_topic": 주요 주제 내용,
-                                                "Summaries": [
-                                                    "• Emoji 요약된 내용1",
-                                                    "• Emoji 요약된 내용2",
-                                                    ...추가 요약 내용 나열
-                                                ]
-                                            }},
-                                            "RECOMMEND_QUESTIONS": [
-                                                "첫 번째 질문 (한국어)",
-                                                "두 번째 질문 (한국어)",
-                                                "세 번째 질문 (한국어)"
-                                            ]
-                                        }}
-                                        OUTPUT:
-                                        """
+    YOUR RESPONSE MUST FOLLOW THIS EXACT FORMAT:
+
+    {{
+    "FINAL_SUMMARY": {{
+        "key_topic": "key topic",
+        "summaries": [
+        "🎯 First summary point.",
+        "📚 Second summary point.",
+        "💡 Third summary point.",
+        "... (at least 10 points)"
+        ]
+    }},
+    "RECOMMEND_QUESTIONS": [
+        "First question?",
+        "Second question?",
+        "Third question?"
+    ]
+    }}
+
+    IMPORTANT FORMATTING RULES:
+    - Use EXACTLY 'FINAL_SUMMARY' and 'RECOMMEND_QUESTIONS' as section headers
+    - Start each summary point with an emoji
+    - Do not number bullet points (use list format with strings)
+    - Number questions using simple strings inside a list
+    - Do not add any additional headers or sections
+    - Do not modify the format of the section headers
+    - Leave exactly one blank line between sections
+    """
 
     class Config:
         env_file = ".env"

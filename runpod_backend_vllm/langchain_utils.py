@@ -8,16 +8,19 @@ import tiktoken
 from config import settings, backup_data, custom_parser, FullStructure
 from dotenv import load_dotenv
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
 from langchain.docstore.document import Document
 from langchain.prompts import PromptTemplate
-from langchain.retrievers import BM25Retriever, EnsembleRetriever
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_community.retrievers import BM25Retriever
+from langchain.retrievers import EnsembleRetriever
 from langchain.schema.output_parser import StrOutputParser
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS
+from langchain_community.vectorstores import FAISS
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain_core.output_parsers import JsonOutputParser
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.llms import VLLM
 
@@ -73,17 +76,7 @@ class LangChainService:
         self.final_summary_prompt = PromptTemplate.from_template(
             settings.FINAL_SUMMARY_PROMPT_TEMPLATE
         )
-        # self.llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.7, streaming=True)
-        self.llm = VLLM(
-                    # model="NCSOFT/Llama-VARCO-8B-Instruct",
-                    model="beomi/Qwen2.5-7B-Instruct-kowiki-qa-context",
-                    trust_remote_code=True,  # Hugging Face 모델의 경우 필수
-                    max_new_tokens=512,
-                    top_k=1,
-                    top_p=0.9,
-                    temperature=0.5,
-                    dtype = "bfloat16",
-                    gpu_memory_utilization = 0.5)
+        self.llm = ChatOpenAI(model_name="beomi/Qwen2.5-7B-Instruct-kowiki-qa-context", temperature=0.7, streaming=True, base_url="http://localhost:8000/v1")
         self.retriever = None
         self.is_prepared = False
         self.SUMMARY_RESULT = ""
@@ -144,7 +137,7 @@ class LangChainService:
             self.llm, self.partial_summary_prompt
         )
         final_summary_chain = create_stuff_documents_chain(
-            llm=self.llm, prompt=self.final_summary_prompt
+            llm=self.llm, prompt=self.final_summary_prompt, output_parser=JsonOutputParser(pydantic_object=FullStructure)
         )
 
         if total_tokens > MAX_TOKENS:
@@ -188,7 +181,7 @@ class LangChainService:
             return
 
         try:
-            for line in self.SUMMARY_RESULT.strip().split("\n"):
+            for line in self.SUMMARY_RESULT:
                 self.documents[0].page_content += "\n" + line
 
             split_docs = self.text_splitter.split_documents(self.documents)

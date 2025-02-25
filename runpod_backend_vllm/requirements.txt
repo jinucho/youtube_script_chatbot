@@ -1,3 +1,5 @@
+# 기본 PyPI 인덱스로 변경
+--index-url https://pypi.org/simple
 pydantic==2.9.2
 pydantic-core==2.23.4
 pydantic-settings==2.5.2
@@ -8,15 +10,19 @@ soundfile==0.12.1
 librosa==0.10.1
 ffmpeg-python==0.2.0
 
+# VLLM
+vllm==0.7.1
+
+
 # LangChain
-langchain==0.3.2
-langchain-community==0.3.1
-langchain-openai==0.2.2
+langchain==0.3.18
+langchain-community==0.3.17
+langchain-openai==0.2.14
 langchain-teddynote==0.0.37
 langchain-huggingface==0.1.2
 
 # YouTube
-pytubefix==7.1.3
+yt-dlp==2025.2.19
 
 # RunPod
 runpod==1.7.2
@@ -26,8 +32,6 @@ tiktoken==0.8.0
 tqdm==4.66.5
 
 # CUDA/GPU dependencies
-torch==2.4.1
-torchaudio==2.4.1
 faiss-gpu-cu12==1.8.0
 
 # HTTP client
@@ -36,5 +40,10 @@ urllib3==2.2.3
 
 # faster-Whisper
 ctranslate2==4.4.0
-tokenizers==0.20.1
 pyannote.audio==3.3.2
+
+# tokenizers의 충돌을 피하기 위해 특정 버전 제거 (transformers와의 호환성을 유지하기 위함)
+faster-whisper @ https://github.com/SYSTRAN/faster-whisper/archive/refs/heads/master.tar.gz
+
+# SentenceTransformer
+sentence-transformers==3.4.1
