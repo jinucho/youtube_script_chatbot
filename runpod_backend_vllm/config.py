@@ -8,8 +8,17 @@ import json
 
 load_dotenv()
 
-VOLUME_PATH = "/runpod-volume"  # runpod serverless 배포 시 경로
-# VOLUME_PATH = "" #local 테스트 시 경로
+
+# 실행 환경에 따라 동적으로 VOLUME_PATH 설정
+def get_volume_path():
+    # 특정 환경 변수 키를 확인하여 RunPod 환경인지 판단
+    if os.getenv("RUNPOD_SERVERLESS") == "True":
+        return "/runpod-volume"  # RunPod 서버리스 배포 시 경로
+    else:
+        return ""  # 로컬 테스트 시 경로
+
+
+VOLUME_PATH = get_volume_path()
 DATA_PATH = os.path.join(VOLUME_PATH, "data")
 
 

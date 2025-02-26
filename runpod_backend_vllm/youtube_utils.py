@@ -63,6 +63,34 @@ class YouTubeService:
                     # base64로 인코딩된 쿠키 문자열을 디코딩
                     cookie_data = base64.b64decode(self.youtube_cookies).decode("utf-8")
 
+                    # 쿠키가 JSON 형식인지 확인하고 Netscape 형식으로 변환
+                    try:
+                        # JSON 형식인지 확인
+                        json_cookies = json.loads(cookie_data)
+
+                        # Netscape 형식으로 변환
+                        netscape_cookies = "# Netscape HTTP Cookie File\n"
+                        for cookie in json_cookies:
+                            if (
+                                "domain" in cookie
+                                and "path" in cookie
+                                and "name" in cookie
+                                and "value" in cookie
+                            ):
+                                secure = (
+                                    "TRUE" if cookie.get("secure", False) else "FALSE"
+                                )
+                                http_only = (
+                                    "TRUE" if cookie.get("httpOnly", False) else "FALSE"
+                                )
+                                expires = str(int(cookie.get("expirationDate", 0)))
+                                netscape_cookies += f"{cookie['domain']}\tTRUE\t{cookie['path']}\t{secure}\t{expires}\t{cookie['name']}\t{cookie['value']}\n"
+
+                        cookie_data = netscape_cookies
+                    except json.JSONDecodeError:
+                        # 이미 Netscape 형식이거나 다른 형식인 경우 그대로 사용
+                        pass
+
                     # 임시 파일 생성
                     cookie_file = tempfile.NamedTemporaryFile(
                         delete=False, suffix=".txt"
