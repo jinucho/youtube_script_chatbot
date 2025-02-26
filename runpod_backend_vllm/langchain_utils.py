@@ -22,7 +22,6 @@ from langchain_core.chat_history import BaseChatMessageHistory
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_community.llms import VLLM
 
 def calculate_tokens(text, model="gpt-4o-mini"):
     encoding = tiktoken.encoding_for_model(model)

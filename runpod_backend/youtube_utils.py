@@ -47,11 +47,45 @@ class YouTubeService:
         }
 
     async def _fetch_video_info(self, url: str):
-        """ yt_dlp를 사용하여 유튜브 영상 정보 가져오기 (비동기 실행) """
+        """yt_dlp를 사용하여 유튜브 영상 정보 가져오기 (비동기 실행)"""
+
         def get_info():
-            ydl_opts = {"format": "bestaudio/best"}
-            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                return ydl.extract_info(url, download=False)
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "quiet": True,
+                "no_warnings": True,
+                # 봇 감지 우회를 위한 설정
+                "nocheckcertificate": True,
+                "ignoreerrors": True,
+                "no_color": True,
+                "extractor_args": {
+                    "youtube": {
+                        "skip": ["dash", "hls"],
+                    }
+                },
+                # 사용자 에이전트 설정
+                "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+                # 쿠키 파일 경로 (필요한 경우)
+                # "cookiefile": "/path/to/cookies.txt",
+            }
+
+            try:
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    return ydl.extract_info(url, download=False)
+            except Exception as e:
+                # 오류 발생 시 대체 방법 시도
+                print(f"첫 번째 시도 실패: {str(e)}")
+                ydl_opts["format"] = "worstaudio/worst"  # 낮은 품질 시도
+                try:
+                    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                        return ydl.extract_info(url, download=False)
+                except Exception as e2:
+                    print(f"두 번째 시도 실패: {str(e2)}")
+                    return {
+                        "title": "제목을 가져올 수 없음",
+                        "description": "",
+                        "url": None,
+                    }
 
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(self.executor, get_info)

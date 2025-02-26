@@ -72,4 +72,6 @@ RUN python3 -c "from langchain_huggingface import HuggingFaceEmbeddings; model =
 RUN python3 -c "from transformers import AutoModelForCausalLM, AutoTokenizer; model = AutoModelForCausalLM.from_pretrained('beomi/Qwen2.5-7B-Instruct-kowiki-qa-context'); tokenizer = tokenizer = AutoTokenizer.from_pretrained('beomi/Qwen2.5-7B-Instruct-kowiki-qa-context')"
 
 # vLLM OpenAI API 서버 및 runpod_main.py 실행
-CMD bash -c "python -m vllm.entrypoints.openai.api_server --model beomi/Qwen2.5-7B-Instruct-kowiki-qa-context --max-model-len=23000 --host 0.0.0.0 --port 8000 & python runpod_main.py & wait"
+CMD ["bash", "-c", "python -m vllm.entrypoints.openai.api_server --model beomi/Qwen2.5-7B-Instruct-kowiki-qa-context --max-model-len=23000 --gpu-memory-utilization=0.7 --host 0.0.0.0 --port 8000 && python runpod_main.py"]
+
+
