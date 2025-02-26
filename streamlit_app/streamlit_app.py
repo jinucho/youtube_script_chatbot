@@ -130,7 +130,9 @@ col1, col2 = st.columns([3, 1])
 with col1:
     url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
 with col2:
-    model = st.selectbox("모델 선택", ["무료", "유료"], key="model_selection")
+    model = st.selectbox(
+        "모델 선택", ["gpt4o-mini", "Qwen2.5-7b"], key="model_selection"
+    )
 
 # 모델 선택에 따라 session_state 값 업데이트
 if model == "무료":
@@ -189,7 +191,9 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 }
 
                 # 상태를 직접 확인하여 작업 완료 시까지 대기
-                summary_response = check_runpod_status(payload, st.session_state.runpod_id)
+                summary_response = check_runpod_status(
+                    payload, st.session_state.runpod_id
+                )
 
                 if summary_response:
                     result = summary_response.get("output", {})

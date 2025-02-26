@@ -125,7 +125,9 @@ col1, col2 = st.columns([3, 1])
 with col1:
     url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
 with col2:
-    model = st.selectbox("모델 선택", ["QWEN", "GPT4o-mini"], key="model_selection")
+    model = st.selectbox(
+        "모델 선택", ["gpt4o-mini", "Qwen2.5-7b"], key="model_selection"
+    )
 
 # 모델 선택에 따라 session_state 값 업데이트
 if model == "무료":
