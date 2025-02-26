@@ -47,6 +47,8 @@ def initialize_session_state():
         st.session_state.recommendations = []
     if "session_id" not in st.session_state:
         st.session_state.session_id = str(uuid.uuid4())
+    if "runpod_id" not in st.session_state:
+        st.session_state.runpod_id = os.getenv("RUNPOD_ENDPOINT_ID")
 
 
 def reset_session_state():
@@ -77,7 +79,7 @@ def process_chat_response(prompt, url_id, message_placeholder):
     }
 
     try:
-        chunks = check_runpod_status(payload)
+        chunks = check_runpod_status(payload, st.session_state.runpod_id)
         for chunk in chunks.get("output"):
             if "content" in chunk:
                 content = chunk["content"]
@@ -119,7 +121,17 @@ def handle_question(question):
 
 
 # 유튜브 URL 입력 받기
-url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
+col1, col2 = st.columns([3, 1])
+with col1:
+    url = st.text_input("유튜브 URL을 입력하세요:", key="youtube_url")
+with col2:
+    model = st.selectbox("모델 선택", ["QWEN", "GPT4o-mini"], key="model_selection")
+
+# 모델 선택에 따라 session_state 값 업데이트
+if model == "무료":
+    st.session_state.runpod_id = os.getenv("RUNPOD_ENDPOINT_ID_VLLM")
+else:
+    st.session_state.runpod_id = os.getenv("RUNPOD_ENDPOINT_ID")
 
 # URL이 변경되었는지 확인하고 처리
 if url != st.session_state.last_url:
@@ -141,7 +153,7 @@ if st.button("스크립트 추출"):
                     "params": {"url": url, "url_id": st.session_state.video_id},
                 }
             }
-            data = check_runpod_status(payload)
+            data = check_runpod_status(payload, st.session_state.runpod_id)
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
             st.rerun()  # 기본 정보를 표시하기 위한 리런
@@ -172,7 +184,9 @@ if st.session_state.title:  # 타이틀이 존재하는 경우에만 레이아�
                 }
 
                 # 상태를 직접 확인하여 작업 완료 시까지 대기
-                summary_response = check_runpod_status(payload)
+                summary_response = check_runpod_status(
+                    payload, st.session_state.runpod_id
+                )
 
                 if summary_response:
                     result = summary_response.get("output", {})

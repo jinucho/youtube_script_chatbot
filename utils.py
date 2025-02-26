@@ -13,8 +13,6 @@ kst = timezone(timedelta(hours=9))
 
 # RunPod 정보
 RUNPOD_API_KEY = os.getenv("RUNPOD_API_KEY")
-RUNPOD_ENDPOINT_ID = os.getenv("RUNPOD_ENDPOINT_ID")
-RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
 HEADERS = {
     "Authorization": f"Bearer {RUNPOD_API_KEY}",
     "Content-Type": "application/json",
@@ -33,7 +31,7 @@ def get_current_time():
     return datetime.now(kst).strftime("%H:%M")
 
 
-def check_runpod_status(payload, interval=5):
+def check_runpod_status(payload, RUNPOD_ENDPOINT_ID, interval=5):
     """
     RunPod 상태를 지속적으로 확인하여 'COMPLETED' 상태일 때 데이터를 반환.
     :param runpod_url: RunPod API 호출 URL
@@ -42,6 +40,7 @@ def check_runpod_status(payload, interval=5):
     :param interval: 상태 확인 주기 (초)
     :return: 작업이 완료되면 결과 데이터 반환
     """
+    RUNPOD_API_URL = f"https://api.runpod.ai/v2/{RUNPOD_ENDPOINT_ID}/runsync"
     response = requests.post(RUNPOD_API_URL, headers=HEADERS, json=payload)
     if response.status_code == 200:
         result = response.json()
