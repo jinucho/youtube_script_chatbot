@@ -135,7 +135,7 @@ with col2:
     )
 
 # 모델 선택에 따라 session_state 값 업데이트
-if model == "무료":
+if model == "Qwen2.5-7b":
     st.session_state.runpod_id = os.getenv("RUNPOD_ENDPOINT_ID_VLLM")
 else:
     st.session_state.runpod_id = os.getenv("RUNPOD_ENDPOINT_ID")

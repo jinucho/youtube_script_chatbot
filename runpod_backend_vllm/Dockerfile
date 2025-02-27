@@ -71,7 +71,20 @@ RUN python3 -c "from faster_whisper import WhisperModel; model = WhisperModel('l
 RUN python3 -c "from langchain_huggingface import HuggingFaceEmbeddings; model = HuggingFaceEmbeddings(model_name='BAAI/bge-m3')"
 RUN python3 -c "from transformers import AutoModelForCausalLM, AutoTokenizer; model = AutoModelForCausalLM.from_pretrained('beomi/Qwen2.5-7B-Instruct-kowiki-qa-context'); tokenizer = tokenizer = AutoTokenizer.from_pretrained('beomi/Qwen2.5-7B-Instruct-kowiki-qa-context')"
 
-# vLLM OpenAI API 서버 및 runpod_main.py 실행
-CMD ["bash", "-c", "python -m vllm.entrypoints.openai.api_server --model beomi/Qwen2.5-7B-Instruct-kowiki-qa-context --max-model-len=23000 --gpu-memory-utilization=0.7 --host 0.0.0.0 --port 8000 && python runpod_main.py"]
+# vLLM과 runpod_main.py를 순차적으로 실행하기 위한 스크립트 생성
+RUN echo '#!/bin/bash\n\
+python -m vllm.entrypoints.openai.api_server --model beomi/Qwen2.5-7B-Instruct-kowiki-qa-context --max-model-len=23000 --gpu-memory-utilization=0.7 --host 0.0.0.0 --port 8000 &\n\
+VLLM_PID=$!\n\
+echo "vLLM 서버가 시작되었습니다. PID: $VLLM_PID"\n\
+# vLLM 서버가 완전히 시작될 때까지 대기\n\
+sleep 30\n\
+# runpod_main.py 실행\n\
+python runpod_main.py\n\
+# 스크립트가 종료되면 vLLM 서버도 종료\n\
+kill $VLLM_PID\n\
+' > /app/start_services.sh && chmod +x /app/start_services.sh
+
+# 시작 스크립트 실행
+CMD ["/app/start_services.sh"]
 
 
