@@ -16,6 +16,10 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+st.write(os.getenv("RUNPOD_ENDPOINT_ID"))
+st.write(os.getenv("RUNPOD_ENDPOINT_ID_VLLM"))
+
+
 # Streamlit 웹 애플리케이션 설정
 st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
 st.title("유튜브 요약 및 AI 채팅")
