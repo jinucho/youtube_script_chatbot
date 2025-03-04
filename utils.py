@@ -98,8 +98,8 @@ def create_downloadable_file(session_state):
     # 텍스트 파일로 저장할 내용 구성
     title = f"제목: {session_state.title}"
     hashtags = f"해시태그: {session_state.hashtags}"
-
-    summary = f"\n[요약]\n{'\n'.join(session_state.summary)}"
+    joined_summary = "\n".join(session_state.summary)
+    summary = f"\n[요약]\n{joined_summary}"
 
     # 스크립트를 텍스트로 변환
     transcript = "[스크립트]\n" + "\n".join(
