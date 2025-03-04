@@ -30,10 +30,6 @@ with col1:
 with col2:
     st.write("주의사항 : 1분 동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
 
-st.write(os.getenv("RUNPOD_ENDPOINT_ID"))
-st.write(os.getenv("RUNPOD_ENDPOINT_ID_VLLM"))
-st.write(os.getenv("RUNPOD_API_KEY"))
-
 
 def initialize_session_state():
     """세션 상태 초기화 함수"""
