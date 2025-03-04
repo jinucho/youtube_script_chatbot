@@ -10,9 +10,9 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from config import settings
-from youtube_utils import YouTubeService
-from whisper_transcription import WhisperTranscriptionService
-from langchain_utils import LangChainService
+from youtube_service import YouTubeService
+from whisper_service import WhisperTranscriptionService
+from langchain_service import LangChainService
 
 # 로그 설정
 logging.basicConfig(level=logging.INFO)
