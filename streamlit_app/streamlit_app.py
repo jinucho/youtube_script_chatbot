@@ -162,6 +162,7 @@ if st.button("스크립트 추출"):
                 }
             }
             data = check_runpod_status(payload, st.session_state.runpod_id)
+            st.write(data)
             st.session_state.title = data.get("output", {}).get("title", "제목")
             st.session_state.hashtags = data.get("output", {}).get("hashtags", "")
             st.rerun()  # 기본 정보를 표시하기 위한 리런
