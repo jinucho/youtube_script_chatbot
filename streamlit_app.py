@@ -14,7 +14,7 @@ from utils import (
 
 # Streamlit 웹 애플리케이션 설정
 st.set_page_config(layout="wide")  # 전체 레이아웃을 넓게 설정
-st.title("유튜브 요약 및 AI 채팅")
+st.title("유튜브 스크립트 추출 및 요약과 AI 채팅")
 
 col1, col2 = st.columns(2)
 with col1:
@@ -23,7 +23,10 @@ with col1:
     )
     st.write("스크립트 내용에 기반하여 AI에게 질문 할 수 있습니다.")
 with col2:
-    st.write("주의사항 : 1분 동안 아무 요청이 없을 경우 세션이 종료 됩니다.")
+    st.write("최초 실행 시 백엔드(RUNPOD) 세션이 활성화 되는데 시간이 소요 됩니다.")
+    st.write(
+        "주의사항 : 1분 동안 아무 요청이 없을 경우 백엔드(RUNPOD)세션이 종료 됩니다."
+    )
 
 
 def initialize_session_state():
