@@ -103,7 +103,7 @@ async def get_script_summary(
         title_hash = video_info.get("title_hashtags", "")
         audio_url = video_info.get("audio_url", "")
         logger.info(f"[Session {session_id}] Video info for URL {url}: {video_info}")
-        transcript = await whisper_service.transcribe(audio_url, url_id)
+        transcript = await whisper_service.transcribe(audio_url, title_hash, url_id)
         logger.info(
             f"[Session {session_id}] Transcript for video {video_info['audio_url'][:10]}: {transcript.get('script')[:3]}"
         )
