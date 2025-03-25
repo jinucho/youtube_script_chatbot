@@ -8,6 +8,13 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 
 ## history
 
+### 2025.03.25
+
+#### 개선
+1. Yotube 처리 라이브러리 변경(pytube -> yt-dlp)
+2. Whisper 음성 input 방식 변경(download -> url input)
+
+
 ### 2024.11.22
 
 #### 테스트
@@ -16,7 +23,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
   2. vllm 파라미터 테스트
   3. 규격화된 출력을 위한 태스크별(부분요약,최종요약,챗) 프롬프트 최적화, output_parser 구현
 
-### ToDo
+#### ToDo
 1. local llm 붙여보기(vllm or ollama)
 
 ----------------------------------------------------------------------------------------------------------------------------------------
@@ -28,7 +35,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 2. FAISS index 저장 및 불러오기 구현
 3. runpod network volume 설정 및 serverless와 연결
 
-### ToDo
+#### ToDo
 1. local llm 붙여보기(vllm or ollama)
 
 ----------------------------------------------------------------------------------------------------------------------------------------
@@ -38,7 +45,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 #### 개선
 1. 임베딩 방법 변경 (OpenAI 대신 HuggingFace 사용)
 
-### ToDo
+#### ToDo
 1. local llm 붙여보기(vllm or ollama)
 2. FAISS, BM25 저장소 local 저장 및 불러오기 구현
 
@@ -50,7 +57,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 1. backend에서 추천 질문 생성 추가
 2. 추천 질문 ui상 표시 및 클릭 시 채팅으로 입력
 
-### ToDo
+#### ToDo
 1. local llm 붙여보기(vllm or ollama)
 2. FAISS, BM25 저장소 local 저장 및 불러오기 구현
 
@@ -61,7 +68,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 #### 개선
 1. 챗 히스토리 기능 추가
 
-### ToDo
+#### ToDo
 1. local llm 붙여보기(vllm or ollama)
 2. FAISS, BM25 저장소 local 저장 및 불러오기 구현
 
@@ -72,7 +79,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 #### 개선
 1. streamlit - 주제, 스크립트, 채팅 내역 다운로드 기능 추가
 
-### ToDo
+#### ToDo
 1. 불필요 라이브러리 제거
 2. local llm 붙여보기(vllm or ollama)
 3. FAISS, BM25 저장소 local 저장 및 불러오기 구현
@@ -85,7 +92,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 1. streamlit - CSS구조 삭제, streamlit chat template 참고하여 채팅 ui 및 기능 재구현
 2. whisper - 긴 영상 처리를 위한 whisper 처리 개선(음성 병렬 다운로드 및 처리)
 
-### ToDo
+#### ToDo
 1. 불필요 라이브러리 제거
 2. local llm 붙여보기(vllm or ollama)
 3. FAISS, BM25 저장소 local 저장 및 불러오기 구현
@@ -97,7 +104,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 #### Docker 구성 및 Backend RUNPOD 배포
 1. Whisper 배치 처리로 변경 - BatchedInferencePipeline
 
-### ToDo
+#### ToDo
 1. 불필요 라이브러리 제거
 2. local llm 붙여보기(vllm or ollama)
 3. FAISS, BM25 저장소 local 저장 및 불러오기 구현
@@ -110,7 +117,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 1. 긴 영상의 경우 runpod serverless에서 IN_QUEUE, IN_PROGRESS를 보내는 경우가 있어,
   이에 맞게 각 엔드포인트 호출 부분 수정 및 status 반복 체크하여 COMPLETED 일때 출력 및 호출 종료로 변경
 
-### ToDo
+#### ToDo
 1. 불필요 라이브러리 제거
 2. local llm 붙여보기(vllm or ollama)
 3. FAISS, BM25 저장소 local 저장 및 불러오기 구현
@@ -124,7 +131,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
   1. runpod serverless에서는 JSON serializable를 지원하지 않아서(확실하지 않음), chunk 수집 후 return으로 변경
   2. 그에맞게 streamlit 코드 변경
 
-### ToDo
+#### ToDo
 1. 불필요 라이브러리 제거
 2. local llm 붙여보기(vllm or ollama)
 
@@ -140,7 +147,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
   4. 실제 사용 될 값은 response.json() 'output' 키 값에 저장되어 있음
   5. 유튜브 제목, 해시태그, 요약, 전체 스크립트 출력 완료
 
-### ToDo
+#### ToDo
 1. runpodserverless사용에 따른 채팅 기능 수정 필요
 
 ----------------------------------------------------------------------------------------------------------------------------------------
@@ -163,7 +170,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
   4. 실제 사용 될 값은 response.json() 'output' 키 값에 저장되어 있음
   5. 유튜브 제목, 해시태그, 요약, 전체 스크립트 출력 완료
 
-### ToDo
+#### ToDo
 1. runpodserverless사용에 따른 채팅 기능 수정 필요
 
 ----------------------------------------------------------------------------------------------------------------------------------------
@@ -181,7 +188,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 #### ISSUE
 1. RUNPOD serverless 정상 동작 하지 않는 것으로 보임(requests 호출에 대한 응답 없음)
 
-### ToDo
+#### ToDo
 1. 챗 히스토리 추가
 2. local model 붙여보기(vllm or ollama)
 3. RUNPOD serverless 배포를 위한 실패 원인 파악
@@ -198,7 +205,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 1. 전역변수 선언으로 인해, 동시에 서비스를 사용할 경우 스크립트가 마지막 스크립트로 번경 됨
 2. whisper 동시처리 불가 --> API로 변경?
 
-### ToDo
+#### ToDo
 1. 전반적인 프로세스 정리
 2. 코드 분리
 3. 코드 최적화
@@ -228,7 +235,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 7. whisper backend에 openai API로 정의된 챗봇과 연결
 
 
-### ToDo
+#### ToDo
 1. 텍스트 전처리 프로세스 정리 - 기능에 대한 필요 유무 확인 후 제거
 2. 챗 히스토리 추가
 3. 챗봇 & RAG 구현
@@ -243,7 +250,7 @@ youtube 영상 내 음성을 텍스트로 변환하여 영상의 주제를 요�
 5. 적절하게 전처리된 문단을 RAG용 문서로 사용
 6. LLM과 3번의 텍스트와 연결(langchain) 
 
-### ToDo
+#### ToDo
 
 1. 스크립트 추출 최적화 (whisper 비동기 처리)
 
